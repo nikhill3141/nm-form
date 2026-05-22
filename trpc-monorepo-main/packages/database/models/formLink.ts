@@ -11,6 +11,7 @@ export const formLinksTable = pgTable(
       .defaultRandom()
       .primaryKey(),
 
+    //it stors the unique identification of the link (slug of form)
     token: varchar("token", {
       length: 500,
     })

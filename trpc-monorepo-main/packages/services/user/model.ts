@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+
 //get user by Email 
 export const getUserByEmailInput = z.object({
   email: z.email().describe("The email of the user"),
@@ -29,3 +30,6 @@ export const signInUserWithEmailAndPasswordInput = z.object({
   password: z.string().describe("password of the user")
 })
 export type SignInUserWIthEmailAndPasswordInputType = z.infer<typeof signInUserWithEmailAndPasswordInput>
+
+
+

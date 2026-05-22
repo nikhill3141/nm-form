@@ -32,14 +32,35 @@ export function clearCookieFactory (res:Response){
   }
 }
 
-//auth cookies
-export function setAuthenticationCookie(ctx:TRPCContext, accessToken:string){
-  ctx.createCookie('authentication-token',accessToken)
+const accessTokenCookieOpt:CookieOptions = {
+  path:"/",
+  httpOnly:true,
+  secure:false,
+  sameSite:"strict",
+  maxAge: 60*1000*60*24 //24hr
+}
+const refreshTokenCookieOpt:CookieOptions = {
+  path:"/",
+  httpOnly:true,
+  secure:false,
+  sameSite:"strict",
+  maxAge: 60*1000*60 //1hr
 }
 
-export function getAuthenticationCookie(ctx:TRPCContext,){
-  return ctx.getCookie('authentication-token')
+//auth cookies
+export function setAccessTokenCookie(ctx:TRPCContext, accessToken:string){
+  ctx.createCookie('access_token',accessToken,accessTokenCookieOpt)
 }
-export function clearAuthenticationCookie(ctx:TRPCContext,){
-   ctx.clearCookie('authentication-token')
+export function setRefreshTokenCookie(ctx:TRPCContext, refreshToken:string){
+  ctx.createCookie('refresh_token',refreshToken ,refreshTokenCookieOpt)
+}
+
+export function getAccessTokenCookie(ctx:TRPCContext){
+  return ctx.getCookie('access_token')
+}
+export function getRefreshTokenCookie(ctx:TRPCContext){
+  return ctx.getCookie('refresh_token')
+}
+export function clearAuthenticationCookie(ctx:TRPCContext,title:string){
+   ctx.clearCookie(title)
 }
