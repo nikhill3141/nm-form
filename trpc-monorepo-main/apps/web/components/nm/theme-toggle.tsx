@@ -16,7 +16,7 @@ export function ThemeToggle() {
   return (
     <Button
       aria-label="Toggle theme"
-      className="border-white/15 bg-white/10 text-white hover:bg-white/15"
+      className="nm-button-glass"
       size="icon"
       type="button"
       variant="outline"

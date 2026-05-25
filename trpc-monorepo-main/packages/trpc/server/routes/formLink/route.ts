@@ -1,19 +1,18 @@
 import {
   createFormLinkInputModel,
   deleteFormLinkInputModel,
-  getFormByLinkTokenInputModel,
+  getFormByLinkSlugInputModel,
   getFormLinksByFormIdInputModel,
 } from "@repo/services/formLink/model";
-import { publicProcedure, router } from "../../trpc";
-import { formLinkService, userService } from "../../services";
+import { protectedProcedure, publicProcedure, router } from "../../trpc";
+import { formLinkService } from "../../services";
 import { generatePath } from "../../utils/path-generator";
-import { getAccessTokenCookie } from "../../utils/cookie";
 import {
   createFormLinkOutputModel,
   deleteFormLinkOutputModel,
-  getFormByLinkTokenOutputModel,
+  getFormBySlugOutputModel,
   getFormLinksByFormIdOutputModel,
-  serializeFormByLinkToken,
+  serializeFormBySlug,
   serializeFormLink,
 } from "./model";
 
@@ -21,7 +20,7 @@ const TAGS = ["Form Link"];
 const getPath = generatePath("/form-link");
 
 export const formLinkRouter = router({
-  createFormLink: publicProcedure
+  createFormLink: protectedProcedure
     .meta({
       openapi: {
         method: "POST",
@@ -32,13 +31,8 @@ export const formLinkRouter = router({
     .input(createFormLinkInputModel)
     .output(createFormLinkOutputModel)
     .mutation(async ({ input, ctx }) => {
-      const accessToken = getAccessTokenCookie(ctx);
-      if (!accessToken) throw new Error("User is not logged in");
-
-      const { id: userId } =
-        await userService.verifyAndDecodeUserToken(accessToken);
       const { createFormLink } = await formLinkService.createFormLink(
-        userId,
+        ctx.user.id,
         input
       );
       const link = createFormLink[0];
@@ -46,7 +40,7 @@ export const formLinkRouter = router({
       return serializeFormLink(link);
     }),
 
-  getFormLinksByFormId: publicProcedure
+  getFormLinksByFormId: protectedProcedure
     .meta({
       openapi: {
         method: "GET",
@@ -57,19 +51,14 @@ export const formLinkRouter = router({
     .input(getFormLinksByFormIdInputModel)
     .output(getFormLinksByFormIdOutputModel)
     .query(async ({ input, ctx }) => {
-      const accessToken = getAccessTokenCookie(ctx);
-      if (!accessToken) throw new Error("User is not logged in");
-
-      const { id: userId } =
-        await userService.verifyAndDecodeUserToken(accessToken);
       const { formLinks } = await formLinkService.getFormLinksByFormId(
-        userId,
+        ctx.user.id,
         input
       );
       return formLinks.map(serializeFormLink);
     }),
 
-  getFormByLinkToken: publicProcedure
+  getFormByLinkSlug: publicProcedure
     .meta({
       openapi: {
         method: "GET",
@@ -77,14 +66,14 @@ export const formLinkRouter = router({
         tags: TAGS,
       },
     })
-    .input(getFormByLinkTokenInputModel)
-    .output(getFormByLinkTokenOutputModel)
+    .input(getFormByLinkSlugInputModel)
+    .output(getFormBySlugOutputModel)
     .query(async ({ input }) => {
-      const { link, form } = await formLinkService.getFormByLinkToken(input);
-      return serializeFormByLinkToken({ link, form });
+      const { link, form } = await formLinkService.getFormByLinkSlug(input);
+      return serializeFormBySlug({ link, form });
     }),
 
-  deleteFormLink: publicProcedure
+  deleteFormLink: protectedProcedure
     .meta({
       openapi: {
         method: "DELETE",
@@ -95,13 +84,8 @@ export const formLinkRouter = router({
     .input(deleteFormLinkInputModel)
     .output(deleteFormLinkOutputModel)
     .mutation(async ({ input, ctx }) => {
-      const accessToken = getAccessTokenCookie(ctx);
-      if (!accessToken) throw new Error("User is not logged in");
-
-      const { id: userId } =
-        await userService.verifyAndDecodeUserToken(accessToken);
       const { deleteFormLink } = await formLinkService.deleteFormLink(
-        userId,
+        ctx.user.id,
         input
       );
       const link = deleteFormLink[0];

@@ -1,4 +1,3 @@
-import { randomBytes } from "crypto";
 import db, { and, eq } from "@repo/database";
 import { formLinksTable, formsTable } from "@repo/database/schema";
 import {
@@ -11,17 +10,13 @@ import {
   CreateFormLinkInputModelType,
   deleteFormLinkInputModel,
   DeleteFormLinkInputModelType,
-  getFormByLinkTokenInputModel,
-  GetFormByLinkTokenInputModelType,
+  getFormByLinkSlugInputModel,
+  GetFormByLinkSlugInputModelType,
   getFormLinksByFormIdInputModel,
   GetFormLinksByFormIdInputModelType,
 } from "./model";
 
 class FormLinkService {
-  private generateToken() {
-    return randomBytes(32).toString("hex");
-  }
-
   private async getOwnedForm(userId: string, formId: string) {
     const [form] = await db
       .select()
@@ -55,11 +50,20 @@ class FormLinkService {
       throw new Error("shareable links are only for unlisted forms");
     }
 
+    const existingLinks = await db
+      .select()
+      .from(formLinksTable)
+      .where(eq(formLinksTable.formId, formId))
+      .limit(1);
+
+    if (existingLinks.length > 0) {
+      return { createFormLink: existingLinks };
+    }
+
     const createFormLink = await db
       .insert(formLinksTable)
       .values({
         formId,
-        token: this.generateToken(),
         ...(expiresAt !== undefined && { expiresAt: new Date(expiresAt) }),
       })
       .returning();
@@ -95,7 +99,6 @@ class FormLinkService {
       .insert(formLinksTable)
       .values({
         formId,
-        token: this.generateToken(),
         ...(formExpiresAt && { expiresAt: formExpiresAt }),
       })
       .returning();
@@ -123,26 +126,14 @@ class FormLinkService {
     };
   }
 
-  //resolve unlisted form by token (public)
-  public async getFormByLinkToken(payload: GetFormByLinkTokenInputModelType) {
-    const { token } = await getFormByLinkTokenInputModel.parseAsync(payload);
-
-    const [link] = await db
-      .select()
-      .from(formLinksTable)
-      .where(eq(formLinksTable.token, token))
-      .limit(1);
-
-    if (!link) {
-      throw new Error("form link not found");
-    }
-
-    this.assertLinkNotExpired(link);
+  //resolve unlisted form by slug (public)
+  public async getFormByLinkSlug(payload: GetFormByLinkSlugInputModelType) {
+    const { slug } = await getFormByLinkSlugInputModel.parseAsync(payload);
 
     const [form] = await db
       .select()
       .from(formsTable)
-      .where(eq(formsTable.id, link.formId))
+      .where(eq(formsTable.slug, slug))
       .limit(1);
 
     if (!form) {
@@ -153,9 +144,24 @@ class FormLinkService {
     assertFormPublished(form);
     assertFormNotExpired(form);
 
-    if (form.visibility !== "unlisted") {
-      throw new Error("this form is public; use the explore route");
+    if (form.visibility === "public") {
+      return {
+        link: null,
+        form,
+      };
     }
+
+    const [link] = await db
+      .select()
+      .from(formLinksTable)
+      .where(eq(formLinksTable.formId, form.id))
+      .limit(1);
+
+    if (!link) {
+      throw new Error("form link not found");
+    }
+
+    this.assertLinkNotExpired(link);
 
     return {
       link,

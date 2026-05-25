@@ -4,10 +4,9 @@ import {
   editFormInputModel,
   getFormByIdInputModel,
 } from "@repo/services/form/model";
-import { publicProcedure, router } from "../../trpc";
-import { formService, userService } from "../../services";
+import { protectedProcedure, router } from "../../trpc";
+import { formService } from "../../services";
 import { generatePath } from "../../utils/path-generator";
-import { getAccessTokenCookie } from "../../utils/cookie";
 import {
   createFormOutputModel,
   deleteFormOutputModel,
@@ -22,7 +21,7 @@ const TAGS = ["Form"];
 const getPath = generatePath("/form");
 
 export const formRouter = router({
-  createForm: publicProcedure
+  createForm: protectedProcedure
     .meta({
       openapi: {
         method: "POST",
@@ -33,18 +32,13 @@ export const formRouter = router({
     .input(createFormInputModel)
     .output(createFormOutputModel)
     .mutation(async ({ input, ctx }) => {
-      const accessToken = getAccessTokenCookie(ctx);
-      if (!accessToken) throw new Error("User is not logged in");
-
-      const { id: userId } =
-        await userService.verifyAndDecodeUserToken(accessToken);
-      const { createForm } = await formService.createForm(userId, input);
+      const { createForm } = await formService.createForm(ctx.user.id, input);
       const form = createForm[0];
       if (!form) throw new Error("Failed to create form");
       return serializeForm(form);
     }),
 
-  getFormById: publicProcedure
+  getFormById: protectedProcedure
     .meta({
       openapi: {
         method: "GET",
@@ -55,16 +49,11 @@ export const formRouter = router({
     .input(getFormByIdInputModel)
     .output(getFormByIdOutputModel)
     .query(async ({ input, ctx }) => {
-      const accessToken = getAccessTokenCookie(ctx);
-      if (!accessToken) throw new Error("User is not logged in");
-
-      const { id: userId } =
-        await userService.verifyAndDecodeUserToken(accessToken);
-      const { form } = await formService.getFormById(userId, input);
+      const { form } = await formService.getFormById(ctx.user.id, input);
       return serializeForm(form);
     }),
 
-  getAllFormsByUserId: publicProcedure
+  getAllFormsByUserId: protectedProcedure
     .meta({
       openapi: {
         method: "GET",
@@ -75,16 +64,11 @@ export const formRouter = router({
     .input(getAllFormsByUserIdInputModel)
     .output(getAllFormsByUserIdOutputModel)
     .query(async ({ ctx }) => {
-      const accessToken = getAccessTokenCookie(ctx);
-      if (!accessToken) throw new Error("User is not logged in");
-
-      const { id: userId } =
-        await userService.verifyAndDecodeUserToken(accessToken);
-      const { forms } = await formService.getAllFormsByUserId(userId);
+      const { forms } = await formService.getAllFormsByUserId(ctx.user.id);
       return forms.map(serializeForm);
     }),
 
-  editForm: publicProcedure
+  editForm: protectedProcedure
     .meta({
       openapi: {
         method: "PATCH",
@@ -95,18 +79,13 @@ export const formRouter = router({
     .input(editFormInputModel)
     .output(editFormOutputModel)
     .mutation(async ({ input, ctx }) => {
-      const accessToken = getAccessTokenCookie(ctx);
-      if (!accessToken) throw new Error("User is not logged in");
-
-      const { id: userId } =
-        await userService.verifyAndDecodeUserToken(accessToken);
-      const { updateForm } = await formService.editForm(userId, input);
+      const { updateForm } = await formService.editForm(ctx.user.id, input);
       const form = updateForm[0];
       if (!form) throw new Error("Failed to update form");
       return serializeForm(form);
     }),
 
-  deleteForm: publicProcedure
+  deleteForm: protectedProcedure
     .meta({
       openapi: {
         method: "DELETE",
@@ -117,12 +96,7 @@ export const formRouter = router({
     .input(deleteFormInputModel)
     .output(deleteFormOutputModel)
     .mutation(async ({ input, ctx }) => {
-      const accessToken = getAccessTokenCookie(ctx);
-      if (!accessToken) throw new Error("User is not logged in");
-
-      const { id: userId } =
-        await userService.verifyAndDecodeUserToken(accessToken);
-      const { deleteForm } = await formService.deleteForm(userId, input);
+      const { deleteForm } = await formService.deleteForm(ctx.user.id, input);
       const form = deleteForm[0];
       if (!form) throw new Error("Failed to delete form");
       return serializeForm(form);

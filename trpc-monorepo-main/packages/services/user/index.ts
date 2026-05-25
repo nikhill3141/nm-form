@@ -21,13 +21,17 @@ class UserService {
   //generate access token
   private async generateAccessToken(payload: GenerateUserTokenPayloadType) {
     const { id } = await generateUserTokenPayload.parseAsync(payload);
-    const accessToken = JWT.sign({ id }, env.JWT_SERECT);
+    const accessToken = JWT.sign({ id }, env.JWT_SERECT, {
+      expiresIn: "1h",
+    });
     return { accessToken };
   }
   //generate refresh token
   private async generateRefreshToken(payload: GenerateUserTokenPayloadType) {
     const { id } = await generateUserTokenPayload.parseAsync(payload);
-    const refreshToken = JWT.sign({ id }, env.JWT_SERECT);
+    const refreshToken = JWT.sign({ id }, env.JWT_SERECT, {
+      expiresIn: "7d",
+    });
     return { refreshToken };
   }
   //verify token
@@ -108,6 +112,11 @@ class UserService {
     const { accessToken} = await this.generateAccessToken({ id: userID });
     const { refreshToken} = await this.generateRefreshToken({ id: userID });
 
+    await db
+      .update(usersTable)
+      .set({ refreshToken })
+      .where(eq(usersTable.id, userID));
+
     return {accessToken, refreshToken, id: userID };
   }
 
@@ -130,6 +139,12 @@ class UserService {
     }
     const { accessToken} = await this.generateAccessToken({ id: existingUser.id });
     const { refreshToken} = await this.generateRefreshToken({ id: existingUser.id });
+
+    await db
+      .update(usersTable)
+      .set({ refreshToken })
+      .where(eq(usersTable.id, existingUser.id));
+
     return {
       id: existingUser.id,
       accessToken,
@@ -140,17 +155,24 @@ class UserService {
   //check for the user refreshtoken and regenrate the token
   public async checkUserRefreshToken(token:string){
     if(!token) throw new Error("Invalid token")
+    await this.verifyToken(token)
     
     const storedRefreshToken = await db.select({
       id: usersTable.id,
       refreshToken: usersTable.refreshToken
     }).from(usersTable).where(eq(usersTable.refreshToken, token))
 
-    if(!storedRefreshToken) throw new Error("Invalid refreshToken")
+    if(!storedRefreshToken || storedRefreshToken.length === 0) throw new Error("Invalid refreshToken")
     const userID = storedRefreshToken[0]?.id
     if(userID === undefined) throw new Error("user id is undefined while verify the refreshToken")
     const { accessToken} = await this.generateAccessToken({ id:userID });
     const { refreshToken} = await this.generateRefreshToken({ id:userID});
+
+    await db
+      .update(usersTable)
+      .set({ refreshToken })
+      .where(eq(usersTable.id, userID));
+
     return{
       accessToken,
       refreshToken

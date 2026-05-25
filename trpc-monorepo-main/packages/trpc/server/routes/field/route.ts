@@ -4,10 +4,9 @@ import {
   getFieldsByFormIdInputModel,
   updateFieldInputModel,
 } from "@repo/services/field/model";
-import { publicProcedure, router } from "../../trpc";
-import { fieldService, userService } from "../../services";
+import { protectedProcedure, publicProcedure, router } from "../../trpc";
+import { fieldService } from "../../services";
 import { generatePath } from "../../utils/path-generator";
-import { getAccessTokenCookie } from "../../utils/cookie";
 import {
   createFieldOutputModel,
   deleteFieldOutputModel,
@@ -20,7 +19,7 @@ const TAGS = ["Field"];
 const getPath = generatePath("/field");
 
 export const fieldRouter = router({
-  createField: publicProcedure
+  createField: protectedProcedure
     .meta({
       openapi: {
         method: "POST",
@@ -31,18 +30,13 @@ export const fieldRouter = router({
     .input(createFieldInputModel)
     .output(createFieldOutputModel)
     .mutation(async ({ input, ctx }) => {
-      const accessToken = getAccessTokenCookie(ctx);
-      if (!accessToken) throw new Error("User is not logged in");
-
-      const { id: userId } =
-        await userService.verifyAndDecodeUserToken(accessToken);
-      const { createField } = await fieldService.createField(userId, input);
+      const { createField } = await fieldService.createField(ctx.user.id, input);
       const field = createField[0];
       if (!field) throw new Error("Failed to create field");
       return serializeField(field);
     }),
 
-  updateField: publicProcedure
+  updateField: protectedProcedure
     .meta({
       openapi: {
         method: "PATCH",
@@ -53,18 +47,13 @@ export const fieldRouter = router({
     .input(updateFieldInputModel)
     .output(updateFieldOutputModel)
     .mutation(async ({ input, ctx }) => {
-      const accessToken = getAccessTokenCookie(ctx);
-      if (!accessToken) throw new Error("User is not logged in");
-
-      const { id: userId } =
-        await userService.verifyAndDecodeUserToken(accessToken);
-      const { updateField } = await fieldService.updateField(userId, input);
+      const { updateField } = await fieldService.updateField(ctx.user.id, input);
       const field = updateField[0];
       if (!field) throw new Error("Failed to update field");
       return serializeField(field);
     }),
 
-  deleteField: publicProcedure
+  deleteField: protectedProcedure
     .meta({
       openapi: {
         method: "DELETE",
@@ -75,12 +64,7 @@ export const fieldRouter = router({
     .input(deleteFieldInputModel)
     .output(deleteFieldOutputModel)
     .mutation(async ({ input, ctx }) => {
-      const accessToken = getAccessTokenCookie(ctx);
-      if (!accessToken) throw new Error("User is not logged in");
-
-      const { id: userId } =
-        await userService.verifyAndDecodeUserToken(accessToken);
-      const { deleteField } = await fieldService.deleteField(userId, input);
+      const { deleteField } = await fieldService.deleteField(ctx.user.id, input);
       const field = deleteField[0];
       if (!field) throw new Error("Failed to delete field");
       return serializeField(field);
@@ -101,7 +85,7 @@ export const fieldRouter = router({
       return fields.map(serializeField);
     }),
 
-  getFieldsByFormIdForOwner: publicProcedure
+  getFieldsByFormIdForOwner: protectedProcedure
     .meta({
       openapi: {
         method: "GET",
@@ -112,13 +96,8 @@ export const fieldRouter = router({
     .input(getFieldsByFormIdInputModel)
     .output(getFieldsByFormIdOutputModel)
     .query(async ({ input, ctx }) => {
-      const accessToken = getAccessTokenCookie(ctx);
-      if (!accessToken) throw new Error("User is not logged in");
-
-      const { id: userId } =
-        await userService.verifyAndDecodeUserToken(accessToken);
       const { fields } = await fieldService.getFieldsByFormIdForOwner(
-        userId,
+        ctx.user.id,
         input
       );
       return fields.map(serializeField);

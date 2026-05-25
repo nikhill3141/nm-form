@@ -3,7 +3,7 @@ import { answerInputModel } from "../answer/model";
 
 export const submitResponseInputModel = z.object({
   formId: z.uuid().describe("id of the form"),
-  linkToken: z
+  linkSlug: z
     .string()
     .optional()
     .describe("required when submitting to an unlisted form"),

@@ -15,6 +15,15 @@ export const formStatusEnum = pgEnum("form_status", [
   "deleted",
 ]);
 
+export const formThemeEnum = pgEnum("form_theme", [
+  "forest_cinematic",
+  "ocean_flow",
+  "cosmic_dark",
+  "minimal_luxury",
+  "cyber_neon",
+  "sunset_studio",
+]);
+
 export const formsTable = pgTable(
   "forms",
   {
@@ -28,9 +37,9 @@ export const formsTable = pgTable(
 
     description: text("description"),
 
-    theme: varchar("theme", {
-      length: 100,
-    }).default("default"),
+    theme: formThemeEnum("theme")
+      .default("forest_cinematic")
+      .notNull(),
 
     slug: varchar("slug", {
       length: 255,

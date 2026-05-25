@@ -3,7 +3,6 @@ import { formOutputModel, formRowSchema, serializeForm } from "../form/model";
 
 const formLinkRowSchema = z.object({
   id: z.uuid(),
-  token: z.string(),
   formId: z.uuid(),
   expiresAt: z.date().nullable(),
   createdAt: z.date(),
@@ -11,7 +10,6 @@ const formLinkRowSchema = z.object({
 
 export const formLinkOutputModel = z.object({
   id: z.uuid(),
-  token: z.string(),
   formId: z.uuid(),
   expiresAt: z.string().nullable(),
   createdAt: z.string(),
@@ -19,7 +17,6 @@ export const formLinkOutputModel = z.object({
 
 export const serializeFormLink = (link: z.infer<typeof formLinkRowSchema>) => ({
   id: link.id,
-  token: link.token,
   formId: link.formId,
   expiresAt: link.expiresAt?.toISOString() ?? null,
   createdAt: link.createdAt.toISOString(),
@@ -29,15 +26,15 @@ export const createFormLinkOutputModel = formLinkOutputModel;
 export const getFormLinksByFormIdOutputModel = z.array(formLinkOutputModel);
 export const deleteFormLinkOutputModel = formLinkOutputModel;
 
-export const getFormByLinkTokenOutputModel = z.object({
-  link: formLinkOutputModel,
+export const getFormBySlugOutputModel = z.object({
+  link: formLinkOutputModel.nullable(),
   form: formOutputModel,
 });
 
-export const serializeFormByLinkToken = (payload: {
-  link: z.infer<typeof formLinkRowSchema>;
+export const serializeFormBySlug = (payload: {
+  link: z.infer<typeof formLinkRowSchema> | null;
   form: z.infer<typeof formRowSchema>;
 }) => ({
-  link: serializeFormLink(payload.link),
+  link: payload.link ? serializeFormLink(payload.link) : null,
   form: serializeForm(payload.form),
 });

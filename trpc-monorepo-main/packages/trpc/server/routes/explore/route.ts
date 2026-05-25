@@ -6,9 +6,9 @@ import {
   explorePublicFormByIdOutputModel,
   explorePublicFormsInputModel,
   explorePublicFormsOutputModel,
+  serializeExplorePublicForm,
   serializeExplorePublicFormById,
 } from "./model";
-import { serializeForm } from "../form/model";
 
 const TAGS = ["Explore"];
 const getPath = generatePath("/explore");
@@ -26,7 +26,7 @@ export const exploreRouter = router({
     .output(explorePublicFormsOutputModel)
     .query(async () => {
       const { forms } = await formService.getAllPublicForms();
-      return forms.map(serializeForm);
+      return forms.map(serializeExplorePublicForm);
     }),
 
   explorePublicFormById: publicProcedure

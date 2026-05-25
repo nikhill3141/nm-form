@@ -1,4 +1,4 @@
-import db, { and, desc, eq, sql } from "@repo/database";
+import db, { and, desc, eq, inArray, sql } from "@repo/database";
 import {
   formFieldsTable,
   formResponsesTable,
@@ -23,7 +23,7 @@ import {
 class ResponseService {
   private formLinkService = new FormLinkService();
 
-  private async getReadableForm(formId: string, linkToken?: string) {
+  private async getReadableForm(formId: string, linkSlug?: string) {
     const [form] = await db
       .select()
       .from(formsTable)
@@ -43,15 +43,15 @@ class ResponseService {
       return form;
     }
 
-    if (!linkToken) {
-      throw new Error("link token is required for unlisted forms");
+    if (!linkSlug) {
+      throw new Error("share link slug is required for unlisted forms");
     }
 
     const { form: linkedForm } =
-      await this.formLinkService.getFormByLinkToken({ token: linkToken });
+      await this.formLinkService.getFormByLinkSlug({ slug: linkSlug });
 
     if (linkedForm.id !== form.id) {
-      throw new Error("link token does not match this form");
+      throw new Error("share link does not match this form");
     }
 
     return form;
@@ -73,14 +73,14 @@ class ResponseService {
 
   //submit response
   public async submitResponse(payload: SubmitResponseInputModelType) {
-    const { formId, linkToken, respondentIp, userAgent, answers } =
+    const { formId, linkSlug, respondentIp, userAgent, answers } =
       await submitResponseInputModel.parseAsync(payload);
 
     const parsedAnswers = await Promise.all(
       answers.map((answer) => answerInputModel.parseAsync(answer))
     );
 
-    const form = await this.getReadableForm(formId, linkToken);
+    const form = await this.getReadableForm(formId, linkSlug);
 
     const fields = await db
       .select()
@@ -173,6 +173,57 @@ class ResponseService {
 
     return {
       responses,
+    };
+  }
+
+  public async getResponseDetailsByFormId(
+    userId: string,
+    payload: GetResponsesByFormIdInputModelType
+  ) {
+    const { formId } = await getResponsesByFormIdInputModel.parseAsync(payload);
+    await this.getOwnedForm(userId, formId);
+
+    const fields = await db
+      .select()
+      .from(formFieldsTable)
+      .where(eq(formFieldsTable.formId, formId));
+
+    const responses = await db
+      .select()
+      .from(formResponsesTable)
+      .where(eq(formResponsesTable.formId, formId))
+      .orderBy(desc(formResponsesTable.submittedAt));
+
+    if (responses.length === 0) {
+      return {
+        fields,
+        responses: [],
+      };
+    }
+
+    const answers = await db
+      .select()
+      .from(responseAnswersTable)
+      .where(
+        inArray(
+          responseAnswersTable.responseId,
+          responses.map((response) => response.id)
+        )
+      );
+
+    const answersByResponseId = new Map<string, typeof answers>();
+    for (const answer of answers) {
+      const responseAnswers = answersByResponseId.get(answer.responseId) ?? [];
+      responseAnswers.push(answer);
+      answersByResponseId.set(answer.responseId, responseAnswers);
+    }
+
+    return {
+      fields,
+      responses: responses.map((response) => ({
+        response,
+        answers: answersByResponseId.get(response.id) ?? [],
+      })),
     };
   }
 }

@@ -17,6 +17,9 @@ export const fieldTypeEnum = pgEnum("field_type", [
   "date",
   "rating",
   "yes_no",
+  "password",
+  "url",
+  "time",
 ]);
 
 export const formFieldsTable = pgTable(

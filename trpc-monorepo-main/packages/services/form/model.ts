@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { formThemeSchema } from "../theme/model";
 
 const visibilitySchema = z.enum(["public", "unlisted"]);
 const formStatusSchema = z.enum(["draft", "published", "deleted"]);
@@ -10,7 +11,7 @@ export const createFormInputModel = z.object({
     "this is the visibility options of form"
   ),
   status: formStatusSchema.describe("status of the form"),
-  theme: z.string().describe("theme of the form"),
+  theme: formThemeSchema.describe("theme of the form"),
   allowAnonymous: z
     .boolean()
     .describe("boolean for form creation based on authentication"),
@@ -26,7 +27,7 @@ export const editFormInputModel = z.object({
     .optional()
     .describe("visibility options of form"),
   status: formStatusSchema.optional().describe("status of the form"),
-  theme: z.string().optional().describe("theme of the form"),
+  theme: formThemeSchema.optional().describe("theme of the form"),
   allowAnonymous: z
     .boolean()
     .optional()

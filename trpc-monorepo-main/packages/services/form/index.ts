@@ -1,11 +1,12 @@
 import db, { and, eq, ne } from "@repo/database";
-import { formsTable } from "@repo/database/schema";
+import { formsTable, usersTable } from "@repo/database/schema";
 import FormLinkService from "../formLink";
 import {
   assertFormNotDeleted,
   assertFormNotExpired,
   assertFormPublished,
 } from "../utils/formAccess";
+import { createUniqueFormSlug } from "../utils/slug";
 import {
   createFormInputModel,
   CreateFormInputModelType,
@@ -34,6 +35,7 @@ class FormService {
     if (!title || !description || !expiresAt || !visibility) {
       throw new Error("provide all the details");
     }
+    const slug = await createUniqueFormSlug(title);
     const createForm = await db
       .insert(formsTable)
       .values({
@@ -43,10 +45,10 @@ class FormService {
         allowAnonymous,
         visibility,
         userId,
-        slug: title,
+        slug,
         status,
         theme,
-        isPublished: false,
+        isPublished: status === "published",
       })
       .returning();
 
@@ -71,8 +73,12 @@ class FormService {
   //get all public forms (used by explore)
   public async getAllPublicForms() {
     const forms = await db
-      .select()
+      .select({
+        form: formsTable,
+        creatorName: usersTable.fullName,
+      })
       .from(formsTable)
+      .leftJoin(usersTable, eq(formsTable.userId, usersTable.id))
       .where(
         and(
           eq(formsTable.visibility, "public"),
@@ -186,7 +192,7 @@ class FormService {
     const updateForm = await db
       .update(formsTable)
       .set({
-        ...(title !== undefined && { title, slug: title }),
+        ...(title !== undefined && { title }),
         ...(description !== undefined && { description }),
         ...(expiresAt !== undefined && { expiresAt: new Date(expiresAt) }),
         ...(allowAnonymous !== undefined && { allowAnonymous }),

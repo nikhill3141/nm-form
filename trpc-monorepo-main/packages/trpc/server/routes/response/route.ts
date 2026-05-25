@@ -2,12 +2,13 @@ import {
   getResponsesByFormIdInputModel,
   submitResponseInputModel,
 } from "@repo/services/response/model";
-import { publicProcedure, router } from "../../trpc";
-import { responseService, userService } from "../../services";
+import { protectedProcedure, publicProcedure, router } from "../../trpc";
+import { responseService } from "../../services";
 import { generatePath } from "../../utils/path-generator";
-import { getAccessTokenCookie } from "../../utils/cookie";
 import {
+  responseDetailsOutputModel,
   getResponsesByFormIdOutputModel,
+  serializeResponseDetails,
   serializeResponse,
   serializeSubmitResponse,
   submitResponseOutputModel,
@@ -32,7 +33,7 @@ export const responseRouter = router({
       return serializeSubmitResponse(result);
     }),
 
-  getResponsesByFormId: publicProcedure
+  getResponsesByFormId: protectedProcedure
     .meta({
       openapi: {
         method: "GET",
@@ -43,15 +44,28 @@ export const responseRouter = router({
     .input(getResponsesByFormIdInputModel)
     .output(getResponsesByFormIdOutputModel)
     .query(async ({ input, ctx }) => {
-      const accessToken = getAccessTokenCookie(ctx);
-      if (!accessToken) throw new Error("User is not logged in");
-
-      const { id: userId } =
-        await userService.verifyAndDecodeUserToken(accessToken);
       const { responses } = await responseService.getResponsesByFormId(
-        userId,
+        ctx.user.id,
         input
       );
       return responses.map(serializeResponse);
+    }),
+
+  getResponseDetailsByFormId: protectedProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: getPath("/by-form/details"),
+        tags: TAGS,
+      },
+    })
+    .input(getResponsesByFormIdInputModel)
+    .output(responseDetailsOutputModel)
+    .query(async ({ input, ctx }) => {
+      const details = await responseService.getResponseDetailsByFormId(
+        ctx.user.id,
+        input
+      );
+      return serializeResponseDetails(details);
     }),
 });

@@ -1,8 +1,7 @@
 import { getAnswersByResponseIdInputModel } from "@repo/services/answer/model";
-import { publicProcedure, router } from "../../trpc";
-import { answerService, userService } from "../../services";
+import { protectedProcedure, router } from "../../trpc";
+import { answerService } from "../../services";
 import { generatePath } from "../../utils/path-generator";
-import { getAccessTokenCookie } from "../../utils/cookie";
 import {
   getAnswersByResponseIdOutputModel,
   serializeAnswer,
@@ -12,7 +11,7 @@ const TAGS = ["Answer"];
 const getPath = generatePath("/answer");
 
 export const answerRouter = router({
-  getAnswersByResponseId: publicProcedure
+  getAnswersByResponseId: protectedProcedure
     .meta({
       openapi: {
         method: "GET",
@@ -23,13 +22,8 @@ export const answerRouter = router({
     .input(getAnswersByResponseIdInputModel)
     .output(getAnswersByResponseIdOutputModel)
     .query(async ({ input, ctx }) => {
-      const accessToken = getAccessTokenCookie(ctx);
-      if (!accessToken) throw new Error("User is not logged in");
-
-      const { id: userId } =
-        await userService.verifyAndDecodeUserToken(accessToken);
       const { answers } = await answerService.getAnswersByResponseId(
-        userId,
+        ctx.user.id,
         input
       );
       return answers.map(serializeAnswer);

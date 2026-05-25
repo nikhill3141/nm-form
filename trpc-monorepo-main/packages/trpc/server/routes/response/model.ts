@@ -70,3 +70,46 @@ export const serializeSubmitResponse = (payload: {
 });
 
 export const getResponsesByFormIdOutputModel = z.array(responseOutputModel);
+
+const responseFieldOutputModel = z.object({
+  id: z.uuid(),
+  label: z.string(),
+  type: z.string(),
+  order: z.number(),
+});
+
+export const responseDetailsOutputModel = z.object({
+  fields: z.array(responseFieldOutputModel),
+  responses: z.array(
+    z.object({
+      response: responseOutputModel,
+      answers: z.array(answerOutputModel),
+    })
+  ),
+});
+
+export const serializeResponseDetails = (payload: {
+  fields: Array<{
+    id: string;
+    label: string;
+    type: string;
+    order: number;
+  }>;
+  responses: Array<{
+    response: z.infer<typeof responseRowSchema>;
+    answers: z.infer<typeof answerRowSchema>[];
+  }>;
+}) => ({
+  fields: payload.fields
+    .map((field) => ({
+      id: field.id,
+      label: field.label,
+      type: field.type,
+      order: field.order,
+    }))
+    .sort((a, b) => a.order - b.order),
+  responses: payload.responses.map((item) => ({
+    response: serializeResponse(item.response),
+    answers: item.answers.map(serializeAnswer),
+  })),
+});

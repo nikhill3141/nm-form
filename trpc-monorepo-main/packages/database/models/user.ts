@@ -17,7 +17,7 @@ export const usersTable = pgTable("users", {
   password: varchar("password", { length: 255 }),
   profileImageUrl: text("profile_image_url"),
   salt: varchar("salt",{length:100}),
-  refreshToken: varchar("refresh_token",{length:100}),
+  refreshToken: varchar("refresh_token",{length:500}),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
 });
@@ -29,7 +29,6 @@ export type InsertUser = typeof usersTable.$inferInsert;
 export const usersRelations = relations(usersTable, ({ many }) => ({
   forms: many(formsTable),
 }));
-
 
 
 

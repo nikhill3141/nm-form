@@ -42,7 +42,7 @@ export default function Home() {
   ];
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#06120d] text-white">
+    <main className="nm-app min-h-screen overflow-hidden">
       <SiteNav />
 
       <section className="relative min-h-[94vh] overflow-hidden px-6 pb-20 pt-32 md:pt-40">
@@ -66,7 +66,7 @@ export default function Home() {
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
-              <Button asChild className="h-12 border-white/15 bg-white/10 px-6 text-base text-white hover:bg-white/15" variant="outline">
+              <Button asChild className="nm-button-glass h-12 px-6 text-base" variant="outline">
                 <Link href="/themes">
                   Explore Themes
                   <Eye className="size-4" />
@@ -106,8 +106,8 @@ export default function Home() {
               return (
                 <GlassPanel className="feature-card p-5" key={feature.title}>
                   <Icon className="mb-7 size-8 text-emerald-200" />
-                  <h3 className="text-xl font-semibold text-white">{feature.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-emerald-50/65">{feature.text}</p>
+                  <h3 className="text-xl font-semibold text-emerald-950 dark:text-white">{feature.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-emerald-900/65 dark:text-emerald-50/65">{feature.text}</p>
                 </GlassPanel>
               );
             })}
@@ -129,9 +129,9 @@ export default function Home() {
       <section className="px-6 py-24 flex flex-col">
         <div className="mx-auto flex flex-col max-w-7xl items-center gap-8 lg:grid-cols-[0.95fr_1.05fr]">
           <SectionHeading
-            description="A Figma-like builder layout with blocks, a live canvas, and a theme/property panel."
+            description="The same builder your team uses: add question blocks, drag fields into the right order, set expiry and visibility, then publish without leaving the canvas."
             eyebrow="Builder"
-            title="Create in the same place your respondents will feel the result."/>
+            title="Build, reorder, and publish from one focused canvas."/>
           <BuilderMockup />
         </div>
       </section>
@@ -157,17 +157,17 @@ export default function Home() {
                 <div className="mb-7 flex items-start justify-between">
                   <div>
                     <h3 className="text-2xl font-semibold">{plan.name}</h3>
-                    <p className="mt-2 text-sm leading-6 text-emerald-50/62">{plan.description}</p>
+                    <p className="mt-2 text-sm leading-6 text-emerald-900/62 dark:text-emerald-50/62">{plan.description}</p>
                   </div>
                   {plan.highlighted && <BadgeCheck className="size-6 text-emerald-200" />}
                 </div>
                 <p className="mb-6 text-4xl font-semibold">
                   {plan.price}
-                  {plan.price.startsWith("$") && <span className="text-base font-normal text-emerald-50/55">/mo</span>}
+                  {plan.price.startsWith("$") && <span className="text-base font-normal text-emerald-900/55 dark:text-emerald-50/55">/mo</span>}
                 </p>
                 <div className="space-y-3">
                   {plan.features.map((feature) => (
-                    <div className="flex items-center gap-3 text-sm text-emerald-50/75" key={feature}>
+                    <div className="flex items-center gap-3 text-sm text-emerald-900/75 dark:text-emerald-50/75" key={feature}>
                       <Leaf className="size-4 text-emerald-200" />
                       {feature}
                     </div>
@@ -184,8 +184,8 @@ export default function Home() {
           {testimonials.map(({ quote, name, icon: Icon }) => (
             <GlassPanel className="floating-card p-6" key={name}>
               <Icon className="mb-8 size-7 text-emerald-200" />
-              <p className="text-lg leading-8 text-white">{quote}</p>
-              <p className="mt-6 text-sm font-semibold text-emerald-100">{name}</p>
+              <p className="text-lg leading-8 text-emerald-950 dark:text-white">{quote}</p>
+              <p className="mt-6 text-sm font-semibold text-emerald-700 dark:text-emerald-100">{name}</p>
             </GlassPanel>
           ))}
         </div>

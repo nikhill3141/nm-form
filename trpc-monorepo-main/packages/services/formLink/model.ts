@@ -15,11 +15,11 @@ export type GetFormLinksByFormIdInputModelType = z.infer<
   typeof getFormLinksByFormIdInputModel
 >;
 
-export const getFormByLinkTokenInputModel = z.object({
-  token: z.string().min(1).describe("shareable form link token"),
+export const getFormByLinkSlugInputModel = z.object({
+  slug: z.string().min(1).describe("shareable form slug"),
 });
-export type GetFormByLinkTokenInputModelType = z.infer<
-  typeof getFormByLinkTokenInputModel
+export type GetFormByLinkSlugInputModelType = z.infer<
+  typeof getFormByLinkSlugInputModel
 >;
 
 export const deleteFormLinkInputModel = z.object({

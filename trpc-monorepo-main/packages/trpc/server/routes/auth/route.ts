@@ -1,8 +1,8 @@
 import { userService } from "../../services";
-import { createUserWithEmailAndPasswordInputSchema, createUserWithEmailAndPasswordOutputSchema, getLoggedInUserInfoInputModel, getLoggedInUserInfoOutputModel, refreshTokenVerificationInputModel, refreshTokenVerificationOutputModel, signInUserWithEmailAndPasswordInput, signInUserWithEmailAndPasswordOutput } from "../auth/model";
-import { publicProcedure, router } from "../../trpc";
+import { createUserWithEmailAndPasswordInputSchema, createUserWithEmailAndPasswordOutputSchema, getLoggedInUserInfoInputModel, getLoggedInUserInfoOutputModel, logoutOutputModel, refreshTokenVerificationInputModel, refreshTokenVerificationOutputModel, signInUserWithEmailAndPasswordInput, signInUserWithEmailAndPasswordOutput } from "../auth/model";
+import { protectedProcedure, publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
-import { getAccessTokenCookie, setAccessTokenCookie, setRefreshTokenCookie } from "../../utils/cookie";
+import { clearAuthenticationCookie, getRefreshTokenCookie, setAccessTokenCookie, setRefreshTokenCookie } from "../../utils/cookie";
 
 
 
@@ -68,10 +68,16 @@ export const authRouter = router({
   })
   .input(refreshTokenVerificationInputModel)
   .output(refreshTokenVerificationOutputModel)
-  .query(async ({input}) => {
+  .query(async ({input, ctx}) => {
+    const fallbackToken = getRefreshTokenCookie(ctx);
     const {token} = await refreshTokenVerificationInputModel.parseAsync(input)
 
-    const{refreshToken, accessToken} = await userService.checkUserRefreshToken(token)
+    const refreshTokenToVerify = token || fallbackToken;
+    if (!refreshTokenToVerify) throw new Error("Invalid refreshToken");
+
+    const{refreshToken, accessToken} = await userService.checkUserRefreshToken(refreshTokenToVerify)
+    setAccessTokenCookie(ctx,accessToken)
+    setRefreshTokenCookie(ctx,refreshToken)
     return{
       refreshToken,
       accessToken
@@ -79,7 +85,7 @@ export const authRouter = router({
   }),
 
   //getme route
-  getLogedInUser: publicProcedure.
+  getLogedInUser: protectedProcedure.
   meta({
     openapi:{
       method:"GET",
@@ -90,11 +96,8 @@ export const authRouter = router({
   .input(getLoggedInUserInfoInputModel)
   .output(getLoggedInUserInfoOutputModel)
   .query(async ({ctx})=>{
-    const userToken = await getAccessTokenCookie(ctx)
-    if(!userToken) throw new Error(`user is not logged in`)
-    
-    const {id,email, fullName, profileImageUrl} = await userService.verifyAndDecodeUserToken(userToken) 
-    
+    const {id,email, fullName, profileImageUrl} = ctx.user
+
     return{
       id,
       email,
@@ -102,6 +105,24 @@ export const authRouter = router({
       profileImageUrl
     }
 
+  }),
+
+  logout: protectedProcedure
+  .meta({
+    openapi:{
+      method:"POST",
+      path: getPath("/logout"),
+      tags:TAGS
+    }
+  })
+  .output(logoutOutputModel)
+  .mutation(async ({ctx})=>{
+    clearAuthenticationCookie(ctx, "access_token")
+    clearAuthenticationCookie(ctx, "refresh_token")
+
+    return {
+      success: true
+    }
   })
 
 

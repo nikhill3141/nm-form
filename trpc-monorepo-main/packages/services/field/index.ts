@@ -50,7 +50,7 @@ class FieldService {
 
   private async assertReadableForm(
     formId: string,
-    linkToken?: string
+    linkSlug?: string
   ) {
     const [form] = await db
       .select()
@@ -70,15 +70,15 @@ class FieldService {
       return form;
     }
 
-    if (!linkToken) {
-      throw new Error("link token is required for unlisted forms");
+    if (!linkSlug) {
+      throw new Error("share link slug is required for unlisted forms");
     }
 
     const { form: linkedForm } =
-      await this.formLinkService.getFormByLinkToken({ token: linkToken });
+      await this.formLinkService.getFormByLinkSlug({ slug: linkSlug });
 
     if (linkedForm.id !== form.id) {
-      throw new Error("link token does not match this form");
+      throw new Error("share link does not match this form");
     }
 
     return form;
@@ -244,10 +244,10 @@ class FieldService {
 
   //get fields by form id (public or owner via token)
   public async getFieldsByFormId(payload: GetFieldsByFormIdInputModelType) {
-    const { formId, linkToken } =
+    const { formId, linkSlug } =
       await getFieldsByFormIdInputModel.parseAsync(payload);
 
-    await this.assertReadableForm(formId, linkToken);
+    await this.assertReadableForm(formId, linkSlug);
 
     const fields = await db
       .select()

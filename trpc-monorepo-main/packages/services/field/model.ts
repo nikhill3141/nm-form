@@ -12,12 +12,16 @@ export const fieldTypeSchema = z.enum([
   "date",
   "rating",
   "yes_no",
+  "password",
+  "url",
+  "time",
 ]);
 
 export const selectFieldTypes = [
   "single_select",
   "multi_select",
   "checkbox",
+  "yes_no",
 ] as const;
 
 export const createFieldInputModel = z.object({
@@ -53,7 +57,7 @@ export type DeleteFieldInputModelType = z.infer<typeof deleteFieldInputModel>;
 
 export const getFieldsByFormIdInputModel = z.object({
   formId: z.uuid().describe("id of the form"),
-  linkToken: z
+  linkSlug: z
     .string()
     .optional()
     .describe("required when accessing an unlisted form"),

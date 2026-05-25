@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { formThemeSchema } from "@repo/services/theme/model";
 
 const visibilitySchema = z.enum(["public", "unlisted"]);
 const formStatusSchema = z.enum(["draft", "published", "deleted"]);
@@ -7,7 +8,7 @@ export const formRowSchema = z.object({
   id: z.uuid(),
   title: z.string(),
   description: z.string().nullable(),
-  theme: z.string().nullable(),
+  theme: formThemeSchema,
   slug: z.string(),
   visibility: visibilitySchema,
   status: formStatusSchema,
@@ -25,7 +26,7 @@ export const formOutputModel = z.object({
   id: z.uuid(),
   title: z.string(),
   description: z.string().nullable(),
-  theme: z.string().nullable(),
+  theme: formThemeSchema,
   slug: z.string(),
   visibility: visibilitySchema,
   status: formStatusSchema,

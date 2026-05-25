@@ -37,14 +37,14 @@ const accessTokenCookieOpt:CookieOptions = {
   httpOnly:true,
   secure:false,
   sameSite:"strict",
-  maxAge: 60*1000*60*24 //24hr
+  maxAge: 60*1000*60 //1hr
 }
 const refreshTokenCookieOpt:CookieOptions = {
   path:"/",
   httpOnly:true,
   secure:false,
   sameSite:"strict",
-  maxAge: 60*1000*60 //1hr
+  maxAge: 60*1000*60*24*7 //7 days
 }
 
 //auth cookies

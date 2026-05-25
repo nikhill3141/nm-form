@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, uuid, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { formsTable } from "./form";
 import { relations } from "drizzle-orm";
 
@@ -10,13 +10,6 @@ export const formLinksTable = pgTable(
     id: uuid("id")
       .defaultRandom()
       .primaryKey(),
-
-    //it stors the unique identification of the link (slug of form)
-    token: varchar("token", {
-      length: 500,
-    })
-      .notNull()
-      .unique(),
 
     formId: uuid("form_id")
       .references(() => formsTable.id, {
@@ -35,8 +28,8 @@ export const formLinksTable = pgTable(
       .notNull(),
   },
   (table) => ({
-    tokenIdx: uniqueIndex("form_links_token_idx").on(
-      table.token
+    formIdx: uniqueIndex("form_links_form_idx").on(
+      table.formId
     ),
   })
 );

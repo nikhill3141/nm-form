@@ -24,7 +24,7 @@ export const signInUserWithEmailAndPasswordOutput = z.object({
 
 //refresh token verification input output model
 export const refreshTokenVerificationInputModel = z.object({
-  token : z.string().describe("refresh token of the user") //this is the refreshToken
+  token : z.string().optional().describe("refresh token of the user") //this is the refreshToken
 })
 export const refreshTokenVerificationOutputModel = z.object({
   accessToken: z.string().describe("access token of user"),
@@ -40,3 +40,7 @@ export const getLoggedInUserInfoOutputModel = z.object({
   fullName: z.string().describe("fullname of the created user"),
   profileImageUrl: z.string().describe("profile image url of the user").optional().nullable()
 }) 
+
+export const logoutOutputModel = z.object({
+  success: z.boolean(),
+})

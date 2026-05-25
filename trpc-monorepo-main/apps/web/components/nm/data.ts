@@ -32,7 +32,7 @@ export const navItems = [
   { label: "Pricing", href: "/pricing" },
   { label: "Dashboard", href: "/dashboard" },
   { label: "Builder", href: "/builder" },
-  { label: "Templates", href: "/templates" },
+  { label: "Explore", href: "/explore" },
   { label: "Themes", href: "/themes" },
 ];
 
@@ -110,12 +110,107 @@ export const themeCards = [
 ];
 
 export const templates = [
-  { title: "Founder Intake", category: "Startup", fields: 12, theme: "Forest Cinematic" },
-  { title: "Event RSVP", category: "Community", fields: 8, theme: "Minimal Luxury" },
-  { title: "Product Feedback", category: "SaaS", fields: 10, theme: "Ocean Flow" },
-  { title: "Client Onboarding", category: "Agency", fields: 15, theme: "Cosmic Dark" },
-  { title: "Hiring Screen", category: "People", fields: 9, theme: "Cyber Neon" },
-  { title: "Research Survey", category: "UXR", fields: 18, theme: "Forest Cinematic" },
+  {
+    slug: "founder-intake",
+    title: "Founder Intake",
+    category: "Startup",
+    description: "Qualify founders, market context, traction, and next steps in one polished intake.",
+    fields: 6,
+    theme: "Forest Cinematic",
+    themeValue: "forest_cinematic",
+    questions: [
+      { label: "What problem are you solving?", type: "long_text", required: true },
+      { label: "Who is your primary customer?", type: "short_text", required: true },
+      { label: "What stage are you at?", type: "single_select", required: true, options: ["Idea", "MVP", "Revenue", "Scaling"] },
+      { label: "Share your website or deck link.", type: "url", required: false },
+      { label: "How should we contact you?", type: "email", required: true },
+      { label: "How strong is your current traction?", type: "rating", required: false },
+    ],
+  },
+  {
+    slug: "event-rsvp",
+    title: "Event RSVP",
+    category: "Community",
+    description: "Collect attendance, guest needs, food preferences, and quick notes.",
+    fields: 5,
+    theme: "Minimal Luxury",
+    themeValue: "minimal_luxury",
+    questions: [
+      { label: "Your full name", type: "short_text", required: true },
+      { label: "Will you attend?", type: "yes_no", required: true },
+      { label: "How many guests are joining you?", type: "number", required: false },
+      { label: "Dietary preferences", type: "multi_select", required: false, options: ["Vegetarian", "Vegan", "Gluten-free", "No preference"] },
+      { label: "Anything we should know?", type: "long_text", required: false },
+    ],
+  },
+  {
+    slug: "product-feedback",
+    title: "Product Feedback",
+    category: "SaaS",
+    description: "Measure product sentiment, feature fit, and the clearest improvement path.",
+    fields: 6,
+    theme: "Ocean Flow",
+    themeValue: "ocean_flow",
+    questions: [
+      { label: "Which product area did you use?", type: "single_select", required: true, options: ["Dashboard", "Builder", "Analytics", "Sharing"] },
+      { label: "How satisfied are you?", type: "rating", required: true },
+      { label: "What felt most useful?", type: "long_text", required: false },
+      { label: "What slowed you down?", type: "long_text", required: false },
+      { label: "Can we follow up by email?", type: "email", required: false },
+      { label: "Would you recommend this?", type: "yes_no", required: true },
+    ],
+  },
+  {
+    slug: "client-onboarding",
+    title: "Client Onboarding",
+    category: "Agency",
+    description: "Capture goals, brand context, timelines, files, and decision makers.",
+    fields: 6,
+    theme: "Cosmic Dark",
+    themeValue: "cosmic_dark",
+    questions: [
+      { label: "Company name", type: "short_text", required: true },
+      { label: "What outcome do you want from this project?", type: "long_text", required: true },
+      { label: "Primary project type", type: "single_select", required: true, options: ["Brand", "Website", "Campaign", "Product design"] },
+      { label: "Target launch date", type: "date", required: false },
+      { label: "Who approves the final work?", type: "short_text", required: false },
+      { label: "Share a reference URL.", type: "url", required: false },
+    ],
+  },
+  {
+    slug: "hiring-screen",
+    title: "Hiring Screen",
+    category: "People",
+    description: "A quick first pass for fit, availability, experience, and portfolio links.",
+    fields: 6,
+    theme: "Cyber Neon",
+    themeValue: "cyber_neon",
+    questions: [
+      { label: "Candidate name", type: "short_text", required: true },
+      { label: "Email", type: "email", required: true },
+      { label: "Role you are applying for", type: "single_select", required: true, options: ["Frontend", "Backend", "Design", "Product"] },
+      { label: "Years of relevant experience", type: "number", required: false },
+      { label: "Portfolio or LinkedIn URL", type: "url", required: false },
+      { label: "Why are you interested?", type: "long_text", required: true },
+    ],
+  },
+  {
+    slug: "research-survey",
+    title: "Research Survey",
+    category: "UXR",
+    description: "Recruit participants and learn about behavior, context, and product expectations.",
+    fields: 6,
+    theme: "Sunset Studio",
+    themeValue: "sunset_studio",
+    questions: [
+      { label: "Which best describes you?", type: "single_select", required: true, options: ["Founder", "Operator", "Designer", "Developer", "Student"] },
+      { label: "How often do you create forms?", type: "single_select", required: true, options: ["Daily", "Weekly", "Monthly", "Rarely"] },
+      { label: "What tools do you use today?", type: "multi_select", required: false, options: ["Google Forms", "Typeform", "Tally", "Airtable", "Custom tools"] },
+      { label: "What is missing from your current workflow?", type: "long_text", required: false },
+      { label: "Would you join a 30-minute interview?", type: "yes_no", required: true },
+      { label: "Best email for scheduling", type: "email", required: false },
+    ],
+  },
 ];
 
 export const pricingPlans = [
@@ -163,19 +258,7 @@ export const builderBlocks = [
   { label: "AI theme", icon: WandSparkles },
 ];
 
-export const analyticsMetrics = [
-  { label: "Total responses", value: "18,420", icon: BarChart3 },
-  { label: "Avg. time", value: "2m 14s", icon: Gauge },
-  { label: "Best theme", value: "Forest", icon: CloudSun },
-  { label: "Top source", value: "Public", icon: Globe2 },
-];
 
-export const settingsGroups = [
-  { title: "Workspace", text: "Brand name, default theme, public profile.", icon: Settings2 },
-  { title: "Security", text: "Session handling, cookie auth, team access.", icon: Lock },
-  { title: "Integrations", text: "Connect webhooks, CRM, sheets, and events.", icon: PlugZap },
-  { title: "AI Assistant", text: "Tone, form style, and generation preferences.", icon: Bot },
-];
 
 export const checks = Check;
 export const chartIcon = ChartNoAxesCombined;
