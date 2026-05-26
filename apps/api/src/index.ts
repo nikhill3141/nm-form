@@ -4,6 +4,8 @@ import { app as expressApplication } from "./server";
 
 import { env } from "./env";
 
+export default expressApplication;
+
 async function init() {
   try {
     const server = http.createServer(expressApplication);
@@ -17,4 +19,6 @@ async function init() {
   }
 }
 
-init();
+if (process.env.VERCEL !== "1") {
+  init();
+}

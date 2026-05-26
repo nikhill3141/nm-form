@@ -1,10 +1,14 @@
 import type {CookieOptions,Request, Response} from "express"
 import { TRPCContext } from "../context"
+
+const nodeEnv = process.env.NODE_ENV as string | undefined;
+const isProduction = nodeEnv === "production" || nodeEnv === "prod";
+
 const defaultCookieOpt:CookieOptions = {
   path:"/",
   httpOnly:true,
-  secure:false,
-  sameSite:"strict",
+  secure:isProduction,
+  sameSite:isProduction ? "none" : "strict",
   maxAge: 60*1000*60*24
 }
 
@@ -35,15 +39,15 @@ export function clearCookieFactory (res:Response){
 const accessTokenCookieOpt:CookieOptions = {
   path:"/",
   httpOnly:true,
-  secure:false,
-  sameSite:"strict",
+  secure:isProduction,
+  sameSite:isProduction ? "none" : "strict",
   maxAge: 60*1000*60 //1hr
 }
 const refreshTokenCookieOpt:CookieOptions = {
   path:"/",
   httpOnly:true,
-  secure:false,
-  sameSite:"strict",
+  secure:isProduction,
+  sameSite:isProduction ? "none" : "strict",
   maxAge: 60*1000*60*24*7 //7 days
 }
 
