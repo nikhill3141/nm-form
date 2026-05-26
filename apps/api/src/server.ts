@@ -18,11 +18,22 @@ const openApiDocument = generateOpenApiDocument(serverRouter, {
   baseUrl: env.BASE_URL.concat("/api"),
 });
 
-
+const normalizeOrigin = (origin: string) => origin.trim().replace(/\/$/, "");
+const allowedOrigins = [
+  "https://nm-form-web.vercel.app",
+  ...(env.FRONTEND_URL?.split(",").map(normalizeOrigin) ?? []),
+];
 
 app.use(
   cors({
-  origin:env.FRONTEND_URL,
+    origin(origin, callback) {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      callback(null, allowedOrigins.includes(normalizeOrigin(origin)));
+    },
     credentials: true,
   }),
 );
