@@ -78,6 +78,7 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 const formsPageSize = 10;
+const responsesPageSize = 5;
 
 function buildFormUrl(slug: string) {
   if (typeof window === "undefined") {
@@ -165,6 +166,7 @@ export function FunctionalDashboard() {
   const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
   const [visibilityTab, setVisibilityTab] = useState<VisibilityTab>("unlisted");
   const [formsPage, setFormsPage] = useState(1);
+  const [responsesPage, setResponsesPage] = useState(1);
   const [formPendingDelete, setFormPendingDelete] = useState<UserForm | null>(null);
   const [formsSearch, setFormsSearch] = useState("");
   const [responseFormSearch, setResponseFormSearch] = useState("");
@@ -248,6 +250,10 @@ export function FunctionalDashboard() {
     setFormsPage(1);
   }, [formsSearch]);
 
+  useEffect(() => {
+    setResponsesPage(1);
+  }, [activeForm?.id]);
+
   const responsesQuery = trpc.response.getResponsesByFormId.useQuery(
     { formId: activeForm?.id ?? "" },
     { enabled: Boolean(me.data && activeForm?.id), retry: false },
@@ -315,6 +321,17 @@ export function FunctionalDashboard() {
       };
     });
   }, [responseDetails]);
+  const totalResponsePages = Math.max(1, Math.ceil(responseRows.length / responsesPageSize));
+  const paginatedResponseRows = responseRows.slice(
+    (responsesPage - 1) * responsesPageSize,
+    responsesPage * responsesPageSize,
+  );
+
+  useEffect(() => {
+    if (responsesPage > totalResponsePages) {
+      setResponsesPage(totalResponsePages);
+    }
+  }, [responsesPage, totalResponsePages]);
 
   const stats = [
     { label: "Live forms", value: forms.length, icon: FileText },
@@ -478,7 +495,13 @@ export function FunctionalDashboard() {
           </Button>
           <Popover>
             <PopoverTrigger asChild>
-              <Button className="nm-button-glass" size="icon" type="button" variant="outline">
+              <Button
+                aria-label={`Show QR code for ${form.title}`}
+                className="nm-button-glass"
+                size="icon"
+                type="button"
+                variant="outline"
+              >
                 <QrCode className="size-4" />
               </Button>
             </PopoverTrigger>
@@ -488,11 +511,16 @@ export function FunctionalDashboard() {
             >
               <p className="font-semibold">Share QR code</p>
               <p className="mt-1 break-all text-xs text-emerald-900/56 dark:text-emerald-50/56">{buildFormUrl(form.slug)}</p>
-              <img
-                alt={`QR code for ${form.title}`}
+              <object
+                aria-label={`QR code for ${form.title}`}
                 className="mx-auto mt-4 size-48 rounded-lg border border-emerald-900/10 bg-white p-2"
-                src={buildQrCodeUrl(form.slug)}
-              />
+                data={buildQrCodeUrl(form.slug)}
+                type="image/png"
+              >
+                <a className="text-sm text-emerald-700" href={buildQrCodeUrl(form.slug)}>
+                  Open QR code
+                </a>
+              </object>
             </PopoverContent>
           </Popover>
         </div>
@@ -579,7 +607,7 @@ export function FunctionalDashboard() {
 
           <div className="flex items-center gap-3">
             <Button className="bg-emerald-300 text-emerald-950 hover:bg-emerald-200" asChild>
-              <Link href="/builder">
+              <Link href="/builder?new=1">
                 <Plus className="size-4" />
                 New form
               </Link>
@@ -618,13 +646,16 @@ export function FunctionalDashboard() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <div className="grid gap-2 p-3 text-sm">
-                  <div className="flex items-center gap-3 rounded-lg bg-emerald-50/80 p-3 dark:bg-white/[0.06]">
+                  <Link
+                    className="flex items-center gap-3 rounded-lg bg-emerald-50/80 p-3 transition hover:bg-emerald-100 dark:bg-white/[0.06] dark:hover:bg-white/[0.1]"
+                    href="/profile"
+                  >
                     <UserRound className="size-4 text-emerald-600 dark:text-emerald-200" />
                     <div>
                       <p className="font-medium">Profile</p>
                       <p className="text-xs text-emerald-900/56 dark:text-emerald-50/56">Personal workspace owner</p>
                     </div>
-                  </div>
+                  </Link>
                   <div className="flex items-center gap-3 rounded-lg bg-emerald-50/80 p-3 dark:bg-white/[0.06]">
                     <Mail className="size-4 text-emerald-600 dark:text-emerald-200" />
                     <div className="min-w-0">
@@ -640,13 +671,6 @@ export function FunctionalDashboard() {
                     </div>
                   </div>
                 </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/profile">
-                    <UserRound className="size-4" />
-                    Open profile page
-                  </Link>
-                </DropdownMenuItem>
                 <DropdownMenuItem
                   className="cursor-pointer text-red-700 focus:bg-red-50 focus:text-red-800 dark:text-red-200 dark:focus:bg-red-500/12 dark:focus:text-red-100"
                   disabled={logout.isPending}
@@ -929,8 +953,8 @@ export function FunctionalDashboard() {
                     Search and select a form to update the trend, response cards, and CSV export.
                   </p>
                 </div>
-                <div className="grid gap-3 sm:min-w-[390px]">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                <div className="grid min-w-0 gap-3 lg:w-[min(100%,430px)]">
+                  <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
                     <Popover open={responsePickerOpen} onOpenChange={setResponsePickerOpen}>
                       <PopoverTrigger asChild>
                         <Button
@@ -1014,7 +1038,7 @@ export function FunctionalDashboard() {
                       </PopoverContent>
                     </Popover>
                     <Button
-                      className="h-12 shrink-0 bg-emerald-300 text-emerald-950 hover:bg-emerald-200"
+                      className="h-12 w-full whitespace-nowrap bg-emerald-300 text-emerald-950 hover:bg-emerald-200 sm:w-auto"
                       disabled={!responseDetails?.responses.length}
                       onClick={exportCsv}
                     >
@@ -1058,14 +1082,16 @@ export function FunctionalDashboard() {
 
               {responseRows.length && responseDetails?.fields.length ? (
                 <div className="grid gap-4">
-                  {responseRows.map((row, index) => (
+                  {paginatedResponseRows.map((row, index) => (
                     <article
                       className="rounded-lg border border-emerald-900/10 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.06]"
                       key={row.response.id}
                     >
                       <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-emerald-900/10 pb-3 dark:border-white/10">
                         <div>
-                          <p className="font-semibold text-emerald-950 dark:text-white">Response {index + 1}</p>
+                          <p className="font-semibold text-emerald-950 dark:text-white">
+                            Response {(responsesPage - 1) * responsesPageSize + index + 1}
+                          </p>
                           <p className="mt-1 text-xs text-emerald-900/55 dark:text-emerald-50/55">
                             {new Date(row.response.submittedAt).toLocaleString()}
                           </p>
@@ -1091,6 +1117,31 @@ export function FunctionalDashboard() {
                       </div>
                     </article>
                   ))}
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-emerald-900/10 pt-4 dark:border-white/10">
+                    <p className="text-sm text-emerald-900/60 dark:text-emerald-50/60">
+                      Page {responsesPage} of {totalResponsePages} / {responseRows.length} responses
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        className="nm-button-glass"
+                        disabled={responsesPage <= 1}
+                        onClick={() => setResponsesPage((page) => Math.max(1, page - 1))}
+                        variant="outline"
+                      >
+                        <ChevronLeft className="size-4" />
+                        Previous
+                      </Button>
+                      <Button
+                        className="nm-button-glass"
+                        disabled={responsesPage >= totalResponsePages}
+                        onClick={() => setResponsesPage((page) => Math.min(totalResponsePages, page + 1))}
+                        variant="outline"
+                      >
+                        Next
+                        <ChevronRight className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="rounded-lg border border-emerald-900/10 bg-white/70 p-4 text-sm text-emerald-900/62 dark:border-white/10 dark:bg-white/[0.06] dark:text-emerald-50/62">
@@ -1144,7 +1195,11 @@ export function FunctionalDashboard() {
                       </Button>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button className="nm-button-glass" variant="outline">
+                          <Button
+                            aria-label={`Show QR code for ${form.title}`}
+                            className="nm-button-glass"
+                            variant="outline"
+                          >
                             <QrCode className="size-4" />
                             QR
                           </Button>
@@ -1155,11 +1210,16 @@ export function FunctionalDashboard() {
                         >
                           <p className="font-semibold">Share QR code</p>
                           <p className="mt-1 break-all text-xs text-emerald-900/56 dark:text-emerald-50/56">{buildFormUrl(form.slug)}</p>
-                          <img
-                            alt={`QR code for ${form.title}`}
+                          <object
+                            aria-label={`QR code for ${form.title}`}
                             className="mx-auto mt-4 size-48 rounded-lg border border-emerald-900/10 bg-white p-2"
-                            src={buildQrCodeUrl(form.slug)}
-                          />
+                            data={buildQrCodeUrl(form.slug)}
+                            type="image/png"
+                          >
+                            <a className="text-sm text-emerald-700" href={buildQrCodeUrl(form.slug)}>
+                              Open QR code
+                            </a>
+                          </object>
                         </PopoverContent>
                       </Popover>
                       <Button className="bg-emerald-300 text-emerald-950 hover:bg-emerald-200" asChild>

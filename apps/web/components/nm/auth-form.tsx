@@ -103,7 +103,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             variant="outline"
           >
             {guestLogin.isPending ? <Loader2 className="size-4 animate-spin" /> : <Presentation className="size-4" />}
-            Continue as guest judge
+            Continue as guest
           </Button>
         )}
         {message && (

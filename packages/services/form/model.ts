@@ -5,8 +5,13 @@ const visibilitySchema = z.enum(["public", "unlisted"]);
 const formStatusSchema = z.enum(["draft", "published", "deleted"]);
 
 export const createFormInputModel = z.object({
-  title: z.string().describe("title string of form"),
-  description: z.string().describe("description of form"),
+  title: z.string().trim().min(1).max(255).describe("title string of form"),
+  description: z
+    .string()
+    .max(2000)
+    .optional()
+    .default("")
+    .describe("description of form"),
   visibility: visibilitySchema.describe(
     "this is the visibility options of form"
   ),
@@ -28,8 +33,8 @@ export type CreateFormInputModelType = z.infer<typeof createFormInputModel>;
 
 export const editFormInputModel = z.object({
   id: z.uuid().describe("id of the form to update"),
-  title: z.string().optional().describe("title string of form"),
-  description: z.string().optional().describe("description of form"),
+  title: z.string().trim().min(1).max(255).optional().describe("title string of form"),
+  description: z.string().max(2000).optional().describe("description of form"),
   visibility: visibilitySchema
     .optional()
     .describe("visibility options of form"),

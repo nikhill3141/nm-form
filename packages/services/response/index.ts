@@ -23,6 +23,92 @@ import {
 class ResponseService {
   private formLinkService = new FormLinkService();
 
+  private getStringOptions(options: unknown) {
+    if (!Array.isArray(options)) return [];
+    return options.filter((option): option is string => typeof option === "string");
+  }
+
+  private validateAnswerValue(
+    field: {
+      label: string;
+      type: string;
+      required: boolean;
+      options: unknown;
+    },
+    value: string
+  ) {
+    const normalizedValue = value.trim();
+
+    if (field.required && (!normalizedValue || normalizedValue === "Skipped")) {
+      throw new Error(`missing required field: ${field.label}`);
+    }
+
+    if (!normalizedValue || normalizedValue === "Skipped") {
+      return;
+    }
+
+    const options = this.getStringOptions(field.options);
+    const assertOption = (optionValue: string) => {
+      if (!options.includes(optionValue)) {
+        throw new Error(`invalid option for field: ${field.label}`);
+      }
+    };
+
+    switch (field.type) {
+      case "single_select":
+      case "yes_no":
+        assertOption(normalizedValue);
+        return;
+      case "multi_select":
+      case "checkbox": {
+        const selectedValues = normalizedValue
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
+
+        if (selectedValues.length === 0) {
+          throw new Error(`invalid option for field: ${field.label}`);
+        }
+
+        selectedValues.forEach(assertOption);
+        return;
+      }
+      case "email":
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedValue)) {
+          throw new Error(`invalid email for field: ${field.label}`);
+        }
+        return;
+      case "number":
+        if (!Number.isFinite(Number(normalizedValue))) {
+          throw new Error(`invalid number for field: ${field.label}`);
+        }
+        return;
+      case "url":
+        try {
+          new URL(normalizedValue);
+        } catch {
+          throw new Error(`invalid URL for field: ${field.label}`);
+        }
+        return;
+      case "date":
+        if (Number.isNaN(Date.parse(normalizedValue))) {
+          throw new Error(`invalid date for field: ${field.label}`);
+        }
+        return;
+      case "time":
+        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(normalizedValue)) {
+          throw new Error(`invalid time for field: ${field.label}`);
+        }
+        return;
+      case "rating": {
+        const rating = Number.parseInt(normalizedValue, 10);
+        if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+          throw new Error(`invalid rating for field: ${field.label}`);
+        }
+      }
+    }
+  }
+
   private async getReadableForm(
     formId: string,
     linkSlug?: string,
@@ -91,7 +177,7 @@ class ResponseService {
       answers.map((answer) => answerInputModel.parseAsync(answer))
     );
 
-    const form = await this.getReadableForm(formId, linkSlug, formPassword);
+    await this.getReadableForm(formId, linkSlug, formPassword);
 
     const fields = await db
       .select()
@@ -117,6 +203,7 @@ class ResponseService {
       }
 
       answeredFieldIds.add(answer.fieldId);
+      this.validateAnswerValue(field, answer.value);
     }
 
     const requiredFields = fields.filter((field) => field.required);

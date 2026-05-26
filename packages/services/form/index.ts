@@ -35,7 +35,7 @@ class FormService {
       theme,
       formPassword,
     } = await createFormInputModel.parseAsync(payload);
-    if (!title || !description || !expiresAt || !visibility) {
+    if (!title || !expiresAt || !visibility) {
       throw new Error("provide all the details");
     }
     const slug = await createUniqueFormSlug(title);

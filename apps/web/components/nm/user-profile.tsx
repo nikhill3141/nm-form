@@ -5,6 +5,7 @@ import { CalendarDays, FileText, Link2, Loader2, Mail, ShieldCheck, UserRound } 
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { trpc } from "~/trpc/client";
+import { docsHref } from "./data";
 import { GlassPanel } from "./ui-blocks";
 
 function getInitials(name: string) {
@@ -120,7 +121,7 @@ export function UserProfile() {
               <Link href="/dashboard">Open dashboard</Link>
             </Button>
             <Button className="nm-button-glass" asChild variant="outline">
-              <a href="http://localhost:8000/docs">Documentation</a>
+              <a href={docsHref}>Documentation</a>
             </Button>
           </div>
         </div>

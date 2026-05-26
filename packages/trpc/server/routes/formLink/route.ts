@@ -69,8 +69,14 @@ export const formLinkRouter = router({
     .input(getFormByLinkSlugInputModel)
     .output(getFormBySlugOutputModel)
     .query(async ({ input }) => {
-      const { link, form } = await formLinkService.getFormByLinkSlug(input);
-      return serializeFormBySlug({ link, form });
+      const { link, form, requiresPassword, accessGranted } =
+        await formLinkService.getFormByLinkSlug(input);
+      return serializeFormBySlug({
+        link,
+        form,
+        requiresPassword,
+        accessGranted,
+      });
     }),
 
   deleteFormLink: protectedProcedure

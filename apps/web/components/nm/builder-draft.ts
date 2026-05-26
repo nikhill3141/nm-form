@@ -45,3 +45,9 @@ export function saveBuilderDraft(draft: BuilderDraft) {
 
   window.localStorage.setItem(builderDraftStorageKey, JSON.stringify(draft));
 }
+
+export function clearBuilderDraft() {
+  if (typeof window === "undefined") return;
+
+  window.localStorage.removeItem(builderDraftStorageKey);
+}

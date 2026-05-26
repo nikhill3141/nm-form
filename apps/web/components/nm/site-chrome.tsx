@@ -12,9 +12,16 @@ import {
 import { navItems } from "./data";
 import { ThemeToggle } from "./theme-toggle";
 
-export function SiteNav() {
+export function SiteNav({ showThemeNotice = false }: { showThemeNotice?: boolean }) {
   return (
-    <header className="fixed left-0 right-0 top-4 z-50 px-4">
+    <>
+      {showThemeNotice && (
+        <div className="fixed left-0 right-0 top-0 z-[60] flex h-9 items-center justify-center border-b border-emerald-300/20 bg-emerald-950/92 px-4 text-center text-xs font-medium text-emerald-50 shadow-[0_10px_34px_rgba(6,78,59,0.22)] backdrop-blur-xl sm:text-sm">
+          <Sparkles className="mr-2 size-3.5 shrink-0 text-emerald-200" />
+          <span className="truncate">New themes are coming soon.</span>
+        </div>
+      )}
+      <header className={showThemeNotice ? "fixed left-0 right-0 top-12 z-50 px-4" : "fixed left-0 right-0 top-4 z-50 px-4"}>
       <div className="nm-panel mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         <Link className="group flex items-center gap-3" href="/">
           <span className="flex size-10 items-center justify-center rounded-lg border border-emerald-300/25 bg-emerald-300/12 shadow-[0_0_28px_rgba(74,222,128,0.22)]">
@@ -24,15 +31,25 @@ export function SiteNav() {
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">
-          {navItems.map((item) => (
-            <Link
-              className="rounded-lg px-4 py-2 text-sm text-emerald-900/72 transition hover:bg-emerald-100/70 hover:text-emerald-950 dark:text-emerald-50/78 dark:hover:bg-white/10 dark:hover:text-white"
-              href={item.href}
-              key={item.href}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) =>
+            item.external ? (
+              <a
+                className="rounded-lg px-4 py-2 text-sm text-emerald-900/72 transition hover:bg-emerald-100/70 hover:text-emerald-950 dark:text-emerald-50/78 dark:hover:bg-white/10 dark:hover:text-white"
+                href={item.href}
+                key={item.href}
+              >
+                {item.label}
+              </a>
+            ) : (
+              <Link
+                className="rounded-lg px-4 py-2 text-sm text-emerald-900/72 transition hover:bg-emerald-100/70 hover:text-emerald-950 dark:text-emerald-50/78 dark:hover:bg-white/10 dark:hover:text-white"
+                href={item.href}
+                key={item.href}
+              >
+                {item.label}
+              </Link>
+            ),
+          )}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -64,15 +81,25 @@ export function SiteNav() {
                 </SheetTitle>
               </SheetHeader>
               <nav className="mt-8 grid gap-2">
-                {navItems.map((item) => (
-                  <Link
-                    className="rounded-lg border border-emerald-900/10 bg-white/70 px-4 py-3 text-sm font-medium text-emerald-950 dark:border-white/10 dark:bg-white/[0.06] dark:text-emerald-50"
-                    href={item.href}
-                    key={item.href}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+                {navItems.map((item) =>
+                  item.external ? (
+                    <a
+                      className="rounded-lg border border-emerald-900/10 bg-white/70 px-4 py-3 text-sm font-medium text-emerald-950 dark:border-white/10 dark:bg-white/[0.06] dark:text-emerald-50"
+                      href={item.href}
+                      key={item.href}
+                    >
+                      {item.label}
+                    </a>
+                  ) : (
+                    <Link
+                      className="rounded-lg border border-emerald-900/10 bg-white/70 px-4 py-3 text-sm font-medium text-emerald-950 dark:border-white/10 dark:bg-white/[0.06] dark:text-emerald-50"
+                      href={item.href}
+                      key={item.href}
+                    >
+                      {item.label}
+                    </Link>
+                  ),
+                )}
                 <Link
                   className="rounded-lg bg-emerald-300 px-4 py-3 text-sm font-semibold text-emerald-950"
                   href="/builder"
@@ -84,7 +111,8 @@ export function SiteNav() {
           </Sheet>
         </div>
       </div>
-    </header>
+      </header>
+    </>
   );
 }
 

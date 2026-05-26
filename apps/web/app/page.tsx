@@ -43,9 +43,9 @@ export default function Home() {
 
   return (
     <main className="nm-app min-h-screen overflow-hidden">
-      <SiteNav />
+      <SiteNav showThemeNotice />
 
-      <section className="relative min-h-[94vh] overflow-hidden px-6 pb-20 pt-32 md:pt-40">
+      <section className="relative min-h-[94vh] overflow-hidden px-6 pb-20 pt-44 md:pt-48">
         <VideoFallbackHero />
         <div className="relative mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.02fr_0.98fr]">
           <div>

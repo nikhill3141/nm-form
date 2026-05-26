@@ -13,8 +13,13 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "NM Forms",
+  title: "forms that grow,try you nm form",
   description: "Immersive form experience platform for cinematic, shareable forms.",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-icon.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({

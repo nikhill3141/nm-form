@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { trpc } from "~/trpc/client";
-import { loadBuilderDraft, saveBuilderDraft, type BuilderDraftField } from "./builder-draft";
+import { clearBuilderDraft, loadBuilderDraft, saveBuilderDraft, type BuilderDraftField } from "./builder-draft";
 import { templates } from "./data";
 import {
   fieldBlocks,
@@ -51,6 +51,7 @@ export function FunctionalBuilder() {
   const utils = trpc.useUtils();
   const editFormId = searchParams.get("formId") ?? "";
   const templateSlug = searchParams.get("template") ?? "";
+  const newFormRequested = searchParams.get("new") === "1";
   const selectedTemplate = templates.find((item) => item.slug === templateSlug);
   const [title, setTitle] = useState("Forest launch survey");
   const [description, setDescription] = useState("A cinematic feedback journey for a product launch.");
@@ -94,6 +95,25 @@ export function FunctionalBuilder() {
   const selectedTheme = getFormTheme(theme);
 
   useEffect(() => {
+    if (newFormRequested) {
+      clearBuilderDraft();
+      setTitle("");
+      setDescription("");
+      setTheme("forest_cinematic");
+      setVisibility("unlisted");
+      setActiveFormId("");
+      setActiveSlug("");
+      setShareUrl("");
+      setExpiresAt(defaultExpiryValue());
+      setAllowAnonymous(true);
+      setPasswordEnabled(false);
+      setFormPassword("");
+      setFields([]);
+      setDraftLoaded(true);
+      router.replace("/builder");
+      return;
+    }
+
     if (editFormId || selectedTemplate) {
       setDraftLoaded(true);
       return;
@@ -115,7 +135,7 @@ export function FunctionalBuilder() {
       setFields(draft.fields);
     }
     setDraftLoaded(true);
-  }, [editFormId, selectedTemplate]);
+  }, [editFormId, newFormRequested, router, selectedTemplate]);
 
   useEffect(() => {
     if (!selectedTemplate || loadedTemplateSlug === selectedTemplate.slug || editFormId) return;
@@ -214,8 +234,9 @@ export function FunctionalBuilder() {
     setStatusMessage("");
     const expiresAtIso = new Date(expiresAt).toISOString();
     const nextPassword = passwordEnabled ? formPassword.trim() : "";
+    const existingPasswordProtected = Boolean(formQuery.data?.isPasswordProtected);
 
-    if (passwordEnabled && !activeFormId && nextPassword.length < 4) {
+    if (passwordEnabled && !existingPasswordProtected && nextPassword.length < 4) {
       setStatusMessage("Set a password with at least 4 characters before creating a protected form.");
       return;
     }

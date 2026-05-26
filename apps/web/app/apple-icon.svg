@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <rect width="180" height="180" rx="40" fill="#052e1f"/>
+  <rect x="14" y="14" width="152" height="152" rx="32" fill="#064e3b" stroke="#6ee7b7" stroke-opacity=".45" stroke-width="6"/>
+  <path d="M131 38c-24.8 3.1-43.1 18.9-45.7 40-1.4 11.8 4.2 20.9 13.5 24.8 11.8 5.1 26.2-.8 34.1-14.1 7.3-12.1 7.9-29.3-1.9-50.7Z" fill="#6ee7b7"/>
+  <path d="M101.7 92.1c9.9-12.4 18.9-22.5 29.3-31.8" fill="none" stroke="#052e1f" stroke-linecap="round" stroke-width="9"/>
+  <text x="34" y="127" fill="#ecfdf5" font-family="Arial, Helvetica, sans-serif" font-size="66" font-weight="800" letter-spacing="-4">NM</text>
+</svg>

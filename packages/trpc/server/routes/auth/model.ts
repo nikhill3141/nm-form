@@ -3,8 +3,8 @@ import { z } from "zod";
 //signup input output model
 export const createUserWithEmailAndPasswordInputSchema = z.object({
   email: z.email().describe("The email of the user"),
-  password: z.string().describe("The password of the user"),
-  fullName: z.string().describe("The full name of the user"),
+  password: z.string().min(8).max(128).describe("The password of the user"),
+  fullName: z.string().trim().min(2).max(80).describe("The full name of the user"),
   profileImageUrl: z.string().describe("The profile image URL of the user").optional(),
 });
 
@@ -16,7 +16,7 @@ export const createUserWithEmailAndPasswordOutputSchema = z.object({
 //signin input output model
 export const signInUserWithEmailAndPasswordInput = z.object({
   email: z.email().describe("email of the user"),
-  password: z.string().describe("password of the user"),
+  password: z.string().min(1).describe("password of the user"),
 })
 export const signInUserWithEmailAndPasswordOutput = z.object({
   id: z.string().describe("id of the user"),
