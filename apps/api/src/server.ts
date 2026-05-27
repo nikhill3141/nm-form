@@ -89,10 +89,28 @@ app.get("/openapi.json", (req, res) => {
 
 logger.debug(`docs: ${env.BASE_URL}/docs`);
 app.get("/docs", (_req, res) => {
-  return res.json({
-    message: "OpenAPI document is available at /openapi.json",
-    openapi: "/openapi.json",
-  });
+  return res
+    .type("html")
+    .send(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NM Forms API Docs</title>
+    <style>
+      body {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script
+      id="api-reference"
+      data-url="/openapi.json"
+      src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"
+    ></script>
+  </body>
+</html>`);
 });
 
 app.use(
