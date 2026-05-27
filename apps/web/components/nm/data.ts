@@ -20,13 +20,6 @@ import {
   Waves,
   Zap,
 } from "lucide-react";
-import { env } from "~/env.js";
-
-const apiBaseUrl = (env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/trpc")
-  .replace(/\/trpc\/?$/, "")
-  .replace(/\/$/, "");
-
-export const docsHref = `${apiBaseUrl}/docs`;
 
 export const navItems = [
   { label: "Pricing", href: "/pricing" },
@@ -34,7 +27,6 @@ export const navItems = [
   { label: "Builder", href: "/builder" },
   { label: "Explore", href: "/explore" },
   { label: "Themes", href: "/themes" },
-  { label: "Docs", href: docsHref, external: true },
 ];
 
 export const trustedTeams = ["Canopy", "Northstar", "Evergreen", "Atlas", "Luma"];

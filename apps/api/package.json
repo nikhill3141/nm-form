@@ -25,7 +25,6 @@
   "dependencies": {
     "@repo/logger": "workspace:*",
     "@repo/trpc": "workspace:*",
-    "@scalar/express-api-reference": "^0.8.30",
     "@trpc/server": "^11.8.1",
     "cookie": "^1.1.1",
     "cookie-parser": "^1.4.7",

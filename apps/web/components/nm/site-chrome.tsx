@@ -31,25 +31,15 @@ export function SiteNav({ showThemeNotice = false }: { showThemeNotice?: boolean
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">
-          {navItems.map((item) =>
-            item.external ? (
-              <a
-                className="rounded-lg px-4 py-2 text-sm text-emerald-900/72 transition hover:bg-emerald-100/70 hover:text-emerald-950 dark:text-emerald-50/78 dark:hover:bg-white/10 dark:hover:text-white"
-                href={item.href}
-                key={item.href}
-              >
-                {item.label}
-              </a>
-            ) : (
-              <Link
-                className="rounded-lg px-4 py-2 text-sm text-emerald-900/72 transition hover:bg-emerald-100/70 hover:text-emerald-950 dark:text-emerald-50/78 dark:hover:bg-white/10 dark:hover:text-white"
-                href={item.href}
-                key={item.href}
-              >
-                {item.label}
-              </Link>
-            ),
-          )}
+          {navItems.map((item) => (
+            <Link
+              className="rounded-lg px-4 py-2 text-sm text-emerald-900/72 transition hover:bg-emerald-100/70 hover:text-emerald-950 dark:text-emerald-50/78 dark:hover:bg-white/10 dark:hover:text-white"
+              href={item.href}
+              key={item.href}
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -81,25 +71,15 @@ export function SiteNav({ showThemeNotice = false }: { showThemeNotice?: boolean
                 </SheetTitle>
               </SheetHeader>
               <nav className="mt-8 grid gap-2">
-                {navItems.map((item) =>
-                  item.external ? (
-                    <a
-                      className="rounded-lg border border-emerald-900/10 bg-white/70 px-4 py-3 text-sm font-medium text-emerald-950 dark:border-white/10 dark:bg-white/[0.06] dark:text-emerald-50"
-                      href={item.href}
-                      key={item.href}
-                    >
-                      {item.label}
-                    </a>
-                  ) : (
-                    <Link
-                      className="rounded-lg border border-emerald-900/10 bg-white/70 px-4 py-3 text-sm font-medium text-emerald-950 dark:border-white/10 dark:bg-white/[0.06] dark:text-emerald-50"
-                      href={item.href}
-                      key={item.href}
-                    >
-                      {item.label}
-                    </Link>
-                  ),
-                )}
+                {navItems.map((item) => (
+                  <Link
+                    className="rounded-lg border border-emerald-900/10 bg-white/70 px-4 py-3 text-sm font-medium text-emerald-950 dark:border-white/10 dark:bg-white/[0.06] dark:text-emerald-50"
+                    href={item.href}
+                    key={item.href}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
                 <Link
                   className="rounded-lg bg-emerald-300 px-4 py-3 text-sm font-semibold text-emerald-950"
                   href="/builder"
@@ -134,7 +114,7 @@ export function Footer() {
         </div>
         {[
           ["Product", "Builder", "Explore", "Themes", "Analytics"],
-          ["Company", "Pricing", "Customers", "Security", "Docs"],
+          ["Company", "Pricing", "Customers", "Security"],
           ["Social", "LinkedIn", "X", "GitHub", "Dribbble"],
         ].map(([title, ...items]) => (
           <div key={title}>
