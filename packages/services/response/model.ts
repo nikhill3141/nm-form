@@ -1,14 +1,14 @@
 import { z } from "zod";
 import { answerInputModel } from "../answer/model";
+import { formPasswordSchema, uuidSchema } from "../shared/schema";
 
 export const submitResponseInputModel = z.object({
-  formId: z.uuid().describe("id of the form"),
+  formId: uuidSchema.describe("id of the form"),
   linkSlug: z
     .string()
     .optional()
     .describe("required when submitting to an unlisted form"),
-  formPassword: z
-    .string()
+  formPassword: formPasswordSchema
     .optional()
     .describe("required when submitting to a password-protected form"),
   respondentIp: z.string().optional(),
@@ -23,7 +23,7 @@ export type SubmitResponseInputModelType = z.infer<
 >;
 
 export const getResponsesByFormIdInputModel = z.object({
-  formId: z.uuid().describe("id of the form"),
+  formId: uuidSchema.describe("id of the form"),
 });
 export type GetResponsesByFormIdInputModelType = z.infer<
   typeof getResponsesByFormIdInputModel

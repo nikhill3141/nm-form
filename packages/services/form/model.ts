@@ -1,14 +1,18 @@
 import { z } from "zod";
 import { formThemeSchema } from "../theme/model";
+import {
+  formDescriptionSchema,
+  formPasswordSchema,
+  formTitleSchema,
+  uuidSchema,
+} from "../shared/schema";
 
 const visibilitySchema = z.enum(["public", "unlisted"]);
 const formStatusSchema = z.enum(["draft", "published", "deleted"]);
 
 export const createFormInputModel = z.object({
-  title: z.string().trim().min(1).max(255).describe("title string of form"),
-  description: z
-    .string()
-    .max(2000)
+  title: formTitleSchema.describe("title string of form"),
+  description: formDescriptionSchema
     .optional()
     .default("")
     .describe("description of form"),
@@ -21,10 +25,7 @@ export const createFormInputModel = z.object({
     .boolean()
     .describe("boolean for form creation based on authentication"),
   expiresAt: z.iso.datetime().describe("form expiry time"),
-  formPassword: z
-    .string()
-    .min(4)
-    .max(80)
+  formPassword: formPasswordSchema
     .optional()
     .nullable()
     .describe("optional password required to open the form"),
@@ -32,9 +33,9 @@ export const createFormInputModel = z.object({
 export type CreateFormInputModelType = z.infer<typeof createFormInputModel>;
 
 export const editFormInputModel = z.object({
-  id: z.uuid().describe("id of the form to update"),
-  title: z.string().trim().min(1).max(255).optional().describe("title string of form"),
-  description: z.string().max(2000).optional().describe("description of form"),
+  id: uuidSchema.describe("id of the form to update"),
+  title: formTitleSchema.optional().describe("title string of form"),
+  description: formDescriptionSchema.optional().describe("description of form"),
   visibility: visibilitySchema
     .optional()
     .describe("visibility options of form"),
@@ -46,10 +47,7 @@ export const editFormInputModel = z.object({
     .describe("whether anonymous responses are allowed"),
   expiresAt: z.iso.datetime().optional().describe("form expiry time"),
   isPublished: z.boolean().optional().describe("whether the form is published"),
-  formPassword: z
-    .string()
-    .min(4)
-    .max(80)
+  formPassword: formPasswordSchema
     .optional()
     .nullable()
     .describe("new password required to open the form"),
@@ -61,17 +59,17 @@ export const editFormInputModel = z.object({
 export type EditFormInputModelType = z.infer<typeof editFormInputModel>;
 
 export const deleteFormInputModel = z.object({
-  id: z.uuid().describe("id of the form to delete"),
+  id: uuidSchema.describe("id of the form to delete"),
 });
 export type DeleteFormInputModelType = z.infer<typeof deleteFormInputModel>;
 
 export const getFormByIdInputModel = z.object({
-  id: z.uuid().describe("id of the form"),
+  id: uuidSchema.describe("id of the form"),
 });
 export type GetFormByIdInputModelType = z.infer<typeof getFormByIdInputModel>;
 
 export const getPublicFormByIdInputModel = z.object({
-  id: z.uuid().describe("id of the public form"),
+  id: uuidSchema.describe("id of the public form"),
 });
 export type GetPublicFormByIdInputModelType = z.infer<
   typeof getPublicFormByIdInputModel

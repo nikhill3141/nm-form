@@ -1,4 +1,10 @@
 import { z } from "zod";
+import {
+  fieldLabelSchema,
+  formPasswordSchema,
+  optionalFieldTextSchema,
+  uuidSchema,
+} from "../shared/schema";
 
 export const fieldTypeSchema = z.enum([
   "short_text",
@@ -25,11 +31,11 @@ export const selectFieldTypes = [
 ] as const;
 
 export const createFieldInputModel = z.object({
-  formId: z.uuid().describe("id of the form"),
-  label: z.string().min(1).describe("field label"),
+  formId: uuidSchema.describe("id of the form"),
+  label: fieldLabelSchema.describe("field label"),
   description: z.string().optional().describe("field description"),
   type: fieldTypeSchema.describe("field type"),
-  placeholder: z.string().optional().describe("field placeholder"),
+  placeholder: optionalFieldTextSchema.describe("field placeholder"),
   required: z.boolean().default(false).describe("whether field is required"),
   order: z.number().int().nonnegative().describe("field order in the form"),
   validationRules: z.record(z.string(), z.unknown()).optional(),
@@ -38,11 +44,11 @@ export const createFieldInputModel = z.object({
 export type CreateFieldInputModelType = z.infer<typeof createFieldInputModel>;
 
 export const updateFieldInputModel = z.object({
-  id: z.uuid().describe("id of the field"),
-  label: z.string().min(1).optional(),
+  id: uuidSchema.describe("id of the field"),
+  label: fieldLabelSchema.optional(),
   description: z.string().optional(),
   type: fieldTypeSchema.optional(),
-  placeholder: z.string().optional(),
+  placeholder: optionalFieldTextSchema,
   required: z.boolean().optional(),
   order: z.number().int().nonnegative().optional(),
   validationRules: z.record(z.string(), z.unknown()).optional(),
@@ -51,18 +57,17 @@ export const updateFieldInputModel = z.object({
 export type UpdateFieldInputModelType = z.infer<typeof updateFieldInputModel>;
 
 export const deleteFieldInputModel = z.object({
-  id: z.uuid().describe("id of the field to delete"),
+  id: uuidSchema.describe("id of the field to delete"),
 });
 export type DeleteFieldInputModelType = z.infer<typeof deleteFieldInputModel>;
 
 export const getFieldsByFormIdInputModel = z.object({
-  formId: z.uuid().describe("id of the form"),
+  formId: uuidSchema.describe("id of the form"),
   linkSlug: z
     .string()
     .optional()
     .describe("required when accessing an unlisted form"),
-  formPassword: z
-    .string()
+  formPassword: formPasswordSchema
     .optional()
     .describe("required when accessing a password-protected form"),
 });

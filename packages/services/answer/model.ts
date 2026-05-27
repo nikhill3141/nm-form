@@ -1,12 +1,13 @@
 import { z } from "zod";
+import { uuidSchema } from "../shared/schema";
 
 export const answerInputModel = z.object({
-  fieldId: z.uuid().describe("id of the form field"),
+  fieldId: uuidSchema.describe("id of the form field"),
   value: z.string().min(1).describe("answer value"),
 });
 
 export const getAnswersByResponseIdInputModel = z.object({
-  responseId: z.uuid().describe("id of the form response"),
+  responseId: uuidSchema.describe("id of the form response"),
 });
 export type GetAnswersByResponseIdInputModelType = z.infer<
   typeof getAnswersByResponseIdInputModel
