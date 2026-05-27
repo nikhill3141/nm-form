@@ -1,7 +1,19 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "ui": "tui",
-  "globalEnv": ["SKIP_ENV_VALIDATION", "VERCEL"],
+  "globalEnv": [
+    "BASE_URL",
+    "DATABASE_URL",
+    "FRONTEND_URL",
+    "JWT_SERECT",
+    "NEXT_PUBLIC_API_URL",
+    "NODE_ENV",
+    "PORT",
+    "SKIP_ENV_VALIDATION",
+    "UPSTASH_REDIS_REST_TOKEN",
+    "UPSTASH_REDIS_REST_URL",
+    "VERCEL"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
