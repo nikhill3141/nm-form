@@ -76,7 +76,6 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     },
   });
 
-  //verify email: adding the email in future
   const verifyEmail = trpc.auth.verifyEmail.useMutation({
     onSuccess: async () => {
       toast.success("Email verified.", {
@@ -94,7 +93,6 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     },
   });
 
-  //Reset password is change in email base verification in future 
   const requestPasswordReset = trpc.auth.requestPasswordReset.useMutation({
     onSuccess: (data) => {
       setResetToken(data.resetToken ?? "");

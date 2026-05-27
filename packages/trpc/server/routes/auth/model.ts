@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { authTokenSchema, emailSchema, passwordSchema, uuidSchema } from "@repo/services/shared/schema";
+import { authTokenSchema, emailSchema, normalizedEmailSchema, passwordSchema, uuidSchema } from "@repo/services/shared/schema";
 
 //signup input output model
 export const createUserWithEmailAndPasswordInputSchema = z.object({
-  email: emailSchema.describe("The email of the user"),
+  email: normalizedEmailSchema.describe("The email of the user"),
   password: passwordSchema.describe("The password of the user"),
   fullName: z.string().trim().min(2).max(80).describe("The full name of the user"),
   profileImageUrl: z.string().describe("The profile image URL of the user").optional(),
@@ -18,7 +18,7 @@ export const createUserWithEmailAndPasswordOutputSchema = z.object({
 
 //signin input output model
 export const signInUserWithEmailAndPasswordInput = z.object({
-  email: emailSchema.describe("email of the user"),
+  email: normalizedEmailSchema.describe("email of the user"),
   password: z.string().min(1).describe("password of the user"),
 })
 export const signInUserWithEmailAndPasswordOutput = z.object({
@@ -62,7 +62,7 @@ export const verifyEmailOutputModel = z.object({
 });
 
 export const requestPasswordResetInputModel = z.object({
-  email: emailSchema.describe("email of the user"),
+  email: normalizedEmailSchema.describe("email of the user"),
 });
 
 export const requestPasswordResetOutputModel = z.object({

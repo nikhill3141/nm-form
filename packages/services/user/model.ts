@@ -1,17 +1,17 @@
 import { z } from "zod";
-import { authTokenSchema, emailSchema, passwordSchema, uuidSchema } from "../shared/schema";
+import { authTokenSchema, normalizedEmailSchema, passwordSchema, uuidSchema } from "../shared/schema";
 
 
 //get user by Email 
 export const getUserByEmailInput = z.object({
-  email: emailSchema.describe("The email of the user"),
+  email: normalizedEmailSchema.describe("The email of the user"),
 })
 
 export type GetUserByEmailInputType = z.infer<typeof getUserByEmailInput>
 
 //create user
 export const createUserWithEmailAndPasswordInputSchema = z.object({
-  email: emailSchema.describe("The email of the user"),
+  email: normalizedEmailSchema.describe("The email of the user"),
   password: passwordSchema.describe("The password of the user"),
   fullName: z.string().trim().min(2).max(80).describe("The full name of the user"),
 });
@@ -27,7 +27,7 @@ export type GenerateUserTokenPayloadType = z.infer<typeof generateUserTokenPaylo
 
 //signin input
 export const signInUserWithEmailAndPasswordInput = z.object({
-  email: emailSchema.describe("email of the user"),
+  email: normalizedEmailSchema.describe("email of the user"),
   password: z.string().min(1).describe("password of the user")
 })
 export type SignInUserWIthEmailAndPasswordInputType = z.infer<typeof signInUserWithEmailAndPasswordInput>
@@ -38,7 +38,7 @@ export const verifyEmailInput = z.object({
 export type VerifyEmailInputType = z.infer<typeof verifyEmailInput>
 
 export const requestPasswordResetInput = z.object({
-  email: emailSchema.describe("email of the user"),
+  email: normalizedEmailSchema.describe("email of the user"),
 });
 export type RequestPasswordResetInputType = z.infer<typeof requestPasswordResetInput>
 

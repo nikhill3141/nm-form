@@ -2,9 +2,11 @@ import { z } from "zod";
 
 export const uuidSchema = z.uuid();
 
-export const emailSchema = z
+export const emailSchema = z.email();
+
+export const normalizedEmailSchema = z
   .email()
-  .transform((value) => value.toLowerCase());
+  .overwrite((value) => value.toLowerCase());
 
 export const passwordSchema = z
   .string()
