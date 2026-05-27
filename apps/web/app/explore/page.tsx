@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useMemo } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   ArrowRight,
@@ -26,6 +26,7 @@ const publicFormPreviewQuestions = [
   "How satisfied are you?",
   "Tell us what made that moment work.",
 ];
+const publicFormsPageSize = 6;
 
 function getTemplatePreviewOptions(template: (typeof templates)[number]) {
   const optionQuestion = template.questions.find((question) => question.options?.length);
@@ -39,6 +40,7 @@ function getTemplatePreviewOptions(template: (typeof templates)[number]) {
 function ExploreContent() {
   const searchParams = useSearchParams();
   const highlightedFormId = searchParams.get("formId");
+  const [publicFormsPage, setPublicFormsPage] = useState(1);
   const publicFormsQuery = trpc.explore.explorePublicForms.useQuery({}, { retry: false });
   const publicForms = useMemo(
     () =>
@@ -49,6 +51,25 @@ function ExploreContent() {
       ),
     [publicFormsQuery.data],
   );
+  const totalPublicFormPages = Math.max(1, Math.ceil(publicForms.length / publicFormsPageSize));
+  const paginatedPublicForms = publicForms.slice(
+    (publicFormsPage - 1) * publicFormsPageSize,
+    publicFormsPage * publicFormsPageSize,
+  );
+
+  useEffect(() => {
+    if (!highlightedFormId) return;
+    const highlightedIndex = publicForms.findIndex((form) => form.id === highlightedFormId);
+    if (highlightedIndex >= 0) {
+      setPublicFormsPage(Math.floor(highlightedIndex / publicFormsPageSize) + 1);
+    }
+  }, [highlightedFormId, publicForms]);
+
+  useEffect(() => {
+    if (publicFormsPage > totalPublicFormPages) {
+      setPublicFormsPage(totalPublicFormPages);
+    }
+  }, [publicFormsPage, totalPublicFormPages]);
 
   return (
     <PageShell
@@ -141,7 +162,7 @@ function ExploreContent() {
 
           {publicForms.length ? (
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {publicForms.map((form) => {
+              {paginatedPublicForms.map((form) => {
                 const theme = getFormTheme(form.theme);
                 const Icon = theme.icon;
                 const isHighlighted = form.id === highlightedFormId;
@@ -222,6 +243,39 @@ function ExploreContent() {
                 </Link>
               </Button>
             </GlassPanel>
+          )}
+          {publicForms.length > publicFormsPageSize && (
+            <div className="mt-8 flex flex-col items-center justify-between gap-3 rounded-xl border border-emerald-900/10 bg-white/60 p-3 text-sm text-emerald-900/70 dark:border-white/10 dark:bg-white/[0.05] dark:text-emerald-50/70 sm:flex-row">
+              <span>
+                Showing {(publicFormsPage - 1) * publicFormsPageSize + 1}-
+                {Math.min(publicFormsPage * publicFormsPageSize, publicForms.length)} of {publicForms.length} public forms
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  className="nm-button-glass"
+                  disabled={publicFormsPage <= 1}
+                  onClick={() => setPublicFormsPage((page) => Math.max(1, page - 1))}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  Previous
+                </Button>
+                <span className="min-w-24 text-center text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700/70 dark:text-emerald-200/70">
+                  Page {publicFormsPage} / {totalPublicFormPages}
+                </span>
+                <Button
+                  className="nm-button-glass"
+                  disabled={publicFormsPage >= totalPublicFormPages}
+                  onClick={() => setPublicFormsPage((page) => Math.min(totalPublicFormPages, page + 1))}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       </section>

@@ -1,6 +1,7 @@
-import { and, db, eq, gt } from "@repo/database";
+import { and, db, eq, gt, type InferInsertModel } from "@repo/database";
 import {
   formFieldsTable,
+  formLinksTable,
   formResponsesTable,
   formsTable,
   responseAnswersTable,
@@ -32,6 +33,19 @@ import {
   isLegacyPasswordHash,
   verifyPassword,
 } from "../utils/password";
+
+type DemoFieldSeed = Omit<
+  InferInsertModel<typeof formFieldsTable>,
+  "formId"
+>;
+
+type DemoFormSeed = Omit<
+  InferInsertModel<typeof formsTable>,
+  "slug" | "userId" | "responseCount"
+> & {
+  responses: string[][];
+  fields: DemoFieldSeed[];
+};
 
 
 class UserService {
@@ -284,43 +298,24 @@ class UserService {
 
   private async ensureGuestDemoData(userId: string) {
     const existingForms = await db
-      .select()
+      .select({ title: formsTable.title })
       .from(formsTable)
-      .where(eq(formsTable.userId, userId))
-      .limit(1);
-
-    if (existingForms.length > 0) {
-      return;
-    }
-
-    const slug = await createUniqueFormSlug("Judges demo feedback");
-
-    await db.transaction(async (tx) => {
-      const [form] = await tx
-        .insert(formsTable)
-        .values({
-          title: "Judges demo feedback",
-          description:
-            "A seeded presentation form with sample questions, responses, and sharing controls.",
-          theme: "forest_cinematic",
-          slug,
-          visibility: "unlisted",
-          status: "published",
-          isPublished: true,
-          allowAnonymous: true,
-          responseCount: 4,
-          expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
-          userId,
-        })
-        .returning();
-
-      if (!form) throw new Error("failed to create guest demo form");
-
-      const fields = await tx
-        .insert(formFieldsTable)
-        .values([
+      .where(eq(formsTable.userId, userId));
+    const existingTitles = new Set(existingForms.map((form) => form.title));
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 45);
+    const demoForms: DemoFormSeed[] = [
+      {
+        title: "Judges demo feedback",
+        description:
+          "A seeded presentation form with sample questions, responses, and sharing controls.",
+        theme: "forest_cinematic",
+        visibility: "unlisted",
+        status: "published",
+        isPublished: true,
+        allowAnonymous: true,
+        expiresAt,
+        fields: [
           {
-            formId: form.id,
             label: "Which part of NM Forms is strongest for presentation?",
             type: "single_select",
             required: true,
@@ -329,7 +324,6 @@ class UserService {
             options: ["Builder flow", "Dashboard analytics", "Share controls", "Visual themes"],
           },
           {
-            formId: form.id,
             label: "Rate the overall project experience",
             type: "rating",
             required: true,
@@ -337,45 +331,278 @@ class UserService {
             placeholder: "Select a rating",
           },
           {
-            formId: form.id,
             label: "What should we improve before final demo?",
             type: "long_text",
             required: false,
             order: 2,
             placeholder: "Share a suggestion",
           },
-        ])
-        .returning();
+        ],
+        responses: [
+          ["Builder flow", "5", "Add a short docs link in the dashboard."],
+          ["Share controls", "4", "Show QR code during the pitch."],
+          ["Dashboard analytics", "5", "Keep the mobile menu simple."],
+          ["Visual themes", "4", "Add one profile page for judges."],
+          ["Builder flow", "5", "The publish and unpublish story is clear."],
+        ],
+      },
+      {
+        title: "Launch feedback pulse",
+        description: "Public launch feedback with satisfaction, feature interest, and follow-up intent.",
+        theme: "ocean_flow",
+        visibility: "public",
+        status: "published",
+        isPublished: true,
+        allowAnonymous: true,
+        expiresAt,
+        fields: [
+          {
+            label: "How did the launch page feel?",
+            type: "single_select",
+            required: true,
+            order: 0,
+            options: ["Clear", "Exciting", "Confusing", "Too long"],
+          },
+          { label: "Overall launch rating", type: "rating", required: true, order: 1 },
+          { label: "What would make you sign up?", type: "long_text", required: false, order: 2 },
+        ],
+        responses: [
+          ["Exciting", "5", "Show the analytics screenshot earlier."],
+          ["Clear", "4", "A short demo video would help."],
+          ["Exciting", "5", "The themes are memorable."],
+          ["Clear", "4", "Pricing should stay simple."],
+          ["Too long", "3", "Make the hero copy tighter."],
+          ["Exciting", "5", "The QR sharing feels demo-ready."],
+        ],
+      },
+      {
+        title: "Product research sprint",
+        description: "Public research survey for learning user workflows and tool preferences.",
+        theme: "cosmic_dark",
+        visibility: "public",
+        status: "published",
+        isPublished: true,
+        allowAnonymous: true,
+        expiresAt,
+        fields: [
+          {
+            label: "What tool do you use today?",
+            type: "single_select",
+            required: true,
+            order: 0,
+            options: ["Google Forms", "Typeform", "Tally", "Custom app"],
+          },
+          { label: "How often do you create forms?", type: "single_select", required: true, order: 1, options: ["Daily", "Weekly", "Monthly", "Rarely"] },
+          { label: "Biggest missing feature", type: "long_text", required: false, order: 2 },
+        ],
+        responses: [
+          ["Typeform", "Weekly", "Better response analytics."],
+          ["Google Forms", "Monthly", "A more polished public page."],
+          ["Tally", "Weekly", "Password protected links."],
+          ["Custom app", "Daily", "Typed APIs and validation."],
+          ["Typeform", "Daily", "Unlisted links for clients."],
+        ],
+      },
+      {
+        title: "Event RSVP experience",
+        description: "Public RSVP form with attendance, dietary preference, and planning notes.",
+        theme: "minimal_luxury",
+        visibility: "public",
+        status: "published",
+        isPublished: true,
+        allowAnonymous: true,
+        expiresAt,
+        fields: [
+          { label: "Will you attend?", type: "yes_no", required: true, order: 0, options: ["Yes", "No"] },
+          { label: "Dietary preference", type: "single_select", required: false, order: 1, options: ["Vegetarian", "Vegan", "Gluten-free", "No preference"] },
+          { label: "Anything the host should know?", type: "long_text", required: false, order: 2 },
+        ],
+        responses: [
+          ["Yes", "Vegetarian", "Arriving with one guest."],
+          ["Yes", "No preference", "Excited for the workshop."],
+          ["No", "No preference", "Please send the recap."],
+          ["Yes", "Vegan", "Need parking details."],
+          ["Yes", "Gluten-free", "Happy to help with setup."],
+        ],
+      },
+      {
+        title: "Hiring screen intake",
+        description: "Public candidate screen showing structured qualification data.",
+        theme: "cyber_neon",
+        visibility: "public",
+        status: "published",
+        isPublished: true,
+        allowAnonymous: true,
+        expiresAt,
+        fields: [
+          { label: "Role preference", type: "single_select", required: true, order: 0, options: ["Frontend", "Backend", "Full-stack", "Product"] },
+          { label: "Years of experience", type: "number", required: true, order: 1 },
+          { label: "Portfolio URL", type: "url", required: false, order: 2 },
+        ],
+        responses: [
+          ["Frontend", "3", "https://example.com/ava"],
+          ["Backend", "5", "https://example.com/dev"],
+          ["Full-stack", "4", "https://example.com/lee"],
+          ["Product", "6", "https://example.com/rio"],
+          ["Frontend", "2", "https://example.com/kai"],
+        ],
+      },
+      {
+        title: "Customer onboarding brief",
+        description: "Public onboarding form for goals, timeline, and project constraints.",
+        theme: "sunset_studio",
+        visibility: "public",
+        status: "published",
+        isPublished: true,
+        allowAnonymous: true,
+        expiresAt,
+        fields: [
+          { label: "Primary project goal", type: "single_select", required: true, order: 0, options: ["Brand", "Website", "Campaign", "Product"] },
+          { label: "Target launch date", type: "date", required: false, order: 1 },
+          { label: "Success metric", type: "long_text", required: false, order: 2 },
+        ],
+        responses: [
+          ["Website", "2026-07-12", "Increase demo bookings."],
+          ["Campaign", "2026-06-20", "Collect qualified leads."],
+          ["Product", "2026-08-01", "Improve activation."],
+          ["Brand", "2026-07-01", "Clarify positioning."],
+        ],
+      },
+      {
+        title: "Creator waitlist",
+        description: "Public waitlist form collecting interest and contact preferences.",
+        theme: "forest_cinematic",
+        visibility: "public",
+        status: "published",
+        isPublished: true,
+        allowAnonymous: true,
+        expiresAt,
+        fields: [
+          { label: "What best describes you?", type: "single_select", required: true, order: 0, options: ["Founder", "Designer", "Marketer", "Student"] },
+          { label: "Best email", type: "email", required: true, order: 1 },
+          { label: "What will you build first?", type: "long_text", required: false, order: 2 },
+        ],
+        responses: [
+          ["Founder", "founder@example.com", "Investor update forms."],
+          ["Designer", "designer@example.com", "Research intake."],
+          ["Marketer", "growth@example.com", "Campaign feedback."],
+          ["Student", "student@example.com", "Club event RSVPs."],
+          ["Founder", "team@example.com", "Beta onboarding."],
+        ],
+      },
+      {
+        title: "Conference session voting",
+        description: "Public voting form with clear response distribution for analytics charts.",
+        theme: "ocean_flow",
+        visibility: "public",
+        status: "published",
+        isPublished: true,
+        allowAnonymous: true,
+        expiresAt,
+        fields: [
+          { label: "Which session should headline?", type: "single_select", required: true, order: 0, options: ["AI workflows", "Design systems", "Backend scale", "Founder stories"] },
+          { label: "Preferred time", type: "time", required: false, order: 1 },
+          { label: "How excited are you?", type: "rating", required: true, order: 2 },
+        ],
+        responses: [
+          ["Backend scale", "10:30", "5"],
+          ["AI workflows", "11:00", "5"],
+          ["Design systems", "14:00", "4"],
+          ["Backend scale", "15:30", "5"],
+          ["Founder stories", "16:00", "4"],
+        ],
+      },
+      {
+        title: "Private partner onboarding",
+        description: "Unlisted partner form with seeded responses and a shareable link.",
+        theme: "minimal_luxury",
+        visibility: "unlisted",
+        status: "published",
+        isPublished: true,
+        allowAnonymous: true,
+        expiresAt,
+        fields: [
+          { label: "Partnership type", type: "single_select", required: true, order: 0, options: ["Integration", "Referral", "Agency", "Investor"] },
+          { label: "Priority level", type: "rating", required: true, order: 1 },
+          { label: "Internal notes", type: "long_text", required: false, order: 2 },
+        ],
+        responses: [
+          ["Integration", "5", "Wants API docs first."],
+          ["Agency", "4", "Needs client workspace demo."],
+          ["Referral", "3", "Good for post-demo follow-up."],
+          ["Investor", "5", "Asked about response ingestion scale."],
+        ],
+      },
+    ];
 
-      const answers = [
-        ["Builder flow", "5 stars - Smooth and polished", "Add a short docs link in the dashboard."],
-        ["Share controls", "4 stars - Strong demo story", "Show QR code during the pitch."],
-        ["Dashboard analytics", "5 stars - Easy to explain", "Keep the mobile menu simple."],
-        ["Visual themes", "4 stars - Memorable interface", "Add one profile page for judges."],
-      ];
+    for (const [demoFormIndex, demoForm] of demoForms.entries()) {
+      if (existingTitles.has(demoForm.title)) continue;
 
-      for (const responseAnswers of answers) {
-        const [response] = await tx
-          .insert(formResponsesTable)
+      const slug = await createUniqueFormSlug(demoForm.title);
+
+      await db.transaction(async (tx) => {
+        const { fields: demoFields, responses: demoResponses, ...formData } = demoForm;
+        const [form] = await tx
+          .insert(formsTable)
           .values({
-            formId: form.id,
-            respondentIp: "demo",
-            userAgent: "NM Forms seeded guest data",
-            isCompleted: true,
+            ...formData,
+            slug,
+            responseCount: demoResponses.length,
+            userId,
           })
           .returning();
 
-        if (!response) throw new Error("failed to create guest demo response");
+        if (!form) throw new Error("failed to create guest demo form");
 
-        await tx.insert(responseAnswersTable).values(
-          fields.map((field, index) => ({
-            responseId: response.id,
-            fieldId: field.id,
-            value: responseAnswers[index] ?? "Skipped",
-          }))
-        );
-      }
-    });
+        if (form.visibility === "unlisted") {
+          await tx
+            .insert(formLinksTable)
+            .values({
+              formId: form.id,
+              expiresAt: form.expiresAt,
+            })
+            .onConflictDoNothing();
+        }
+
+        const fields = await tx
+          .insert(formFieldsTable)
+          .values(
+            demoFields.map((field) => ({
+              ...field,
+              formId: form.id,
+            }))
+          )
+          .returning();
+        const orderedFields = [...fields].sort((a, b) => a.order - b.order);
+
+        for (const [responseIndex, responseAnswers] of demoResponses.entries()) {
+          const submittedAt = new Date(
+            Date.now() - 1000 * 60 * 60 * 24 * (demoFormIndex + responseIndex + 1)
+          );
+          const [response] = await tx
+            .insert(formResponsesTable)
+            .values({
+              formId: form.id,
+              respondentIp: "demo",
+              userAgent: "NM Forms seeded guest data",
+              isCompleted: true,
+              submittedAt,
+              createdAt: submittedAt,
+            })
+            .returning();
+
+          if (!response) throw new Error("failed to create guest demo response");
+
+          await tx.insert(responseAnswersTable).values(
+            orderedFields.map((field, index) => ({
+              responseId: response.id,
+              fieldId: field.id,
+              value: responseAnswers[index] ?? "Skipped",
+            }))
+          );
+        }
+      });
+    }
   }
 
   public async signinGuestUser() {

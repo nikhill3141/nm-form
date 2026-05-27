@@ -95,6 +95,7 @@ export const authRouter = router({
     }
   }),
 
+//this will add email logic is future
   verifyEmail: publicProcedure
   .meta({
     openapi:{
@@ -141,7 +142,7 @@ export const authRouter = router({
 
     return await userService.requestPasswordReset(input)
   }),
-
+//resetPassword will get the email verification flow in future
   resetPassword: publicProcedure
   .meta({
     openapi:{
@@ -163,7 +164,7 @@ export const authRouter = router({
     return await userService.resetPassword(input)
   }),
 
-  //token_varification and reseting
+  //token_varification and reseting (email in future)
   refreshTokenRecreation : publicProcedure
   .meta({
     openapi:{

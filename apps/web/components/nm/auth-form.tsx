@@ -3,9 +3,17 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowRight, Leaf, Loader2, Presentation } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { trpc } from "~/trpc/client";
 import { GlassPanel } from "./ui-blocks";
+
+const authToastClassName = "nm-toast";
+const redirectToDashboard = () => {
+  window.setTimeout(() => {
+    window.location.href = "/dashboard";
+  }, 650);
+};
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const isSignup = mode === "signup";
@@ -13,7 +21,6 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
   const [verificationToken, setVerificationToken] = useState("");
   const [resetMode, setResetMode] = useState(false);
   const [resetToken, setResetToken] = useState("");
@@ -22,44 +29,86 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const signup = trpc.auth.createUserWithEmailAndPassword.useMutation({
     onSuccess: (data) => {
       setVerificationToken(data.verificationToken ?? "");
-      setMessage("Account created. Verify your email to unlock the workspace.");
+      toast.success("Account created.", {
+        className: authToastClassName,
+        description: "Verify your email to unlock the workspace.",
+      });
     },
-    onError: (error) => setMessage(error.message),
+    onError: (error) => {
+      toast.error("Could not create account.", {
+        className: authToastClassName,
+        description: error.message,
+      });
+    },
   });
 
   const signin = trpc.auth.signinUserWithEmailAndPassword.useMutation({
     onSuccess: async () => {
-      setMessage("Signed in. Opening your dashboard...");
+      toast.success("Signed in.", {
+        className: authToastClassName,
+        description: "Opening your dashboard...",
+      });
       await utils.auth.getLogedInUser.invalidate();
-      window.location.href = "/dashboard";
+      redirectToDashboard();
     },
-    onError: (error) => setMessage(error.message),
+    onError: (error) => {
+      toast.error("Could not sign in.", {
+        className: authToastClassName,
+        description: error.message,
+      });
+    },
   });
 
   const guestLogin = trpc.auth.guestLogin.useMutation({
     onSuccess: async () => {
-      setMessage("Guest demo loaded. Opening seeded dashboard...");
+      toast.success("Guest demo loaded.", {
+        className: authToastClassName,
+        description: "Opening seeded dashboard...",
+      });
       await utils.auth.getLogedInUser.invalidate();
-      window.location.href = "/dashboard";
+      redirectToDashboard();
     },
-    onError: (error) => setMessage(error.message),
+    onError: (error) => {
+      toast.error("Could not load guest demo.", {
+        className: authToastClassName,
+        description: error.message,
+      });
+    },
   });
 
+  //verify email: adding the email in future
   const verifyEmail = trpc.auth.verifyEmail.useMutation({
     onSuccess: async () => {
-      setMessage("Email verified. Opening your dashboard...");
+      toast.success("Email verified.", {
+        className: authToastClassName,
+        description: "Opening your dashboard...",
+      });
       await utils.auth.getLogedInUser.invalidate();
-      window.location.href = "/dashboard";
+      redirectToDashboard();
     },
-    onError: (error) => setMessage(error.message),
+    onError: (error) => {
+      toast.error("Could not verify email.", {
+        className: authToastClassName,
+        description: error.message,
+      });
+    },
   });
 
+  //Reset password is change in email base verification in future 
   const requestPasswordReset = trpc.auth.requestPasswordReset.useMutation({
     onSuccess: (data) => {
       setResetToken(data.resetToken ?? "");
-      setMessage("Password reset link generated. Set your new password below.");
+      toast.info("Password reset link generated.", {
+        className: authToastClassName,
+        description: "Set your new password below.",
+      });
     },
-    onError: (error) => setMessage(error.message),
+    onError: (error) => {
+      toast.error("Could not generate reset link.", {
+        className: authToastClassName,
+        description: error.message,
+      });
+    },
   });
 
   const resetPassword = trpc.auth.resetPassword.useMutation({
@@ -67,9 +116,17 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       setResetMode(false);
       setResetToken("");
       setNewPassword("");
-      setMessage("Password updated. Sign in with your new password.");
+      toast.success("Password updated.", {
+        className: authToastClassName,
+        description: "Sign in with your new password.",
+      });
     },
-    onError: (error) => setMessage(error.message),
+    onError: (error) => {
+      toast.error("Could not update password.", {
+        className: authToastClassName,
+        description: error.message,
+      });
+    },
   });
 
   const isPending =
@@ -100,7 +157,6 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             className="mt-8 space-y-4"
             onSubmit={(event) => {
               event.preventDefault();
-              setMessage("");
               if (!resetToken) {
                 requestPasswordReset.mutate({ email });
                 return;
@@ -138,7 +194,6 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           className="mt-8 space-y-4"
           onSubmit={(event) => {
             event.preventDefault();
-            setMessage("");
             if (isSignup) {
               signup.mutate({ fullName, email, password });
               return;
@@ -170,7 +225,6 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
               className="w-full border-emerald-300/30 bg-emerald-300/12 text-emerald-50 hover:bg-emerald-300/18"
               disabled={isPending}
               onClick={() => {
-                setMessage("");
                 verifyEmail.mutate({ token: verificationToken });
               }}
               type="button"
@@ -189,7 +243,6 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                 className="mt-3 w-full border-white/12 bg-white/[0.07] text-emerald-50 hover:bg-white/[0.11]"
                 disabled={isPending}
                 onClick={() => {
-                  setMessage("");
                   guestLogin.mutate();
                 }}
                 type="button"
@@ -203,7 +256,6 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
               <button
                 className="mt-4 w-full text-center text-sm font-medium text-emerald-200 hover:text-emerald-100"
                 onClick={() => {
-                  setMessage("");
                   setResetMode(true);
                 }}
                 type="button"
@@ -212,9 +264,6 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
               </button>
             )}
           </>
-        )}
-        {message && (
-          <p className="mt-4 rounded-lg border border-white/10 bg-white/[0.06] p-3 text-sm text-emerald-50/72">{message}</p>
         )}
         <p className="mt-6 text-center text-sm text-emerald-50/62">
           {isSignup ? "Already have an account?" : "New to NM Forms?"}{" "}
