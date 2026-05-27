@@ -18,6 +18,14 @@ export const usersTable = pgTable("users", {
   profileImageUrl: text("profile_image_url"),
   salt: varchar("salt",{length:100}),
   refreshToken: varchar("refresh_token",{length:500}),
+  emailVerificationTokenHash: varchar("email_verification_token_hash", {
+    length: 255,
+  }),
+  emailVerificationExpiresAt: timestamp("email_verification_expires_at"),
+  passwordResetTokenHash: varchar("password_reset_token_hash", {
+    length: 255,
+  }),
+  passwordResetExpiresAt: timestamp("password_reset_expires_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
 });
@@ -29,7 +37,6 @@ export type InsertUser = typeof usersTable.$inferInsert;
 export const usersRelations = relations(usersTable, ({ many }) => ({
   forms: many(formsTable),
 }));
-
 
 
 

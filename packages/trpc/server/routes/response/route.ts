@@ -31,7 +31,7 @@ export const responseRouter = router({
     .output(submitResponseOutputModel)
     .mutation(async ({ input, ctx }) => {
       const clientKey = ctx.requestIp ?? "unknown";
-      assertRateLimit({
+      await assertRateLimit({
         key: `response:${input.formId}:${clientKey}`,
         limit: 8,
         windowMs: 10 * 60 * 1000,

@@ -57,6 +57,13 @@
       "when": 1780016400000,
       "tag": "0007_form_password_controls",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1780102800000,
+      "tag": "0008_auth_security_hardening",
+      "breakpoints": true
     }
   ]
 }

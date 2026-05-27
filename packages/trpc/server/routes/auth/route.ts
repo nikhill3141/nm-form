@@ -1,8 +1,9 @@
 import { userService } from "../../services";
-import { createUserWithEmailAndPasswordInputSchema, createUserWithEmailAndPasswordOutputSchema, getLoggedInUserInfoInputModel, getLoggedInUserInfoOutputModel, guestLoginOutputModel, logoutOutputModel, refreshTokenVerificationInputModel, refreshTokenVerificationOutputModel, signInUserWithEmailAndPasswordInput, signInUserWithEmailAndPasswordOutput } from "../auth/model";
+import { createUserWithEmailAndPasswordInputSchema, createUserWithEmailAndPasswordOutputSchema, getLoggedInUserInfoInputModel, getLoggedInUserInfoOutputModel, guestLoginOutputModel, logoutOutputModel, refreshTokenVerificationInputModel, refreshTokenVerificationOutputModel, requestPasswordResetInputModel, requestPasswordResetOutputModel, resetPasswordInputModel, resetPasswordOutputModel, signInUserWithEmailAndPasswordInput, signInUserWithEmailAndPasswordOutput, verifyEmailInputModel, verifyEmailOutputModel } from "../auth/model";
 import { protectedProcedure, publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 import { clearAuthenticationCookie, getRefreshTokenCookie, setAccessTokenCookie, setRefreshTokenCookie } from "../../utils/cookie";
+import { assertRateLimit } from "../../utils/rate-limit";
 
 
 
@@ -22,6 +23,12 @@ export const authRouter = router({
   .output(signInUserWithEmailAndPasswordOutput)
   .mutation(async ({input, ctx})=>{
     const {email, password} = input
+    await assertRateLimit({
+      key: `auth:signin:${ctx.requestIp ?? "unknown"}:${email}`,
+      limit: 5,
+      windowMs: 15 * 60 * 1000,
+      message: "Too many sign-in attempts. Please wait before trying again.",
+    });
     const {id, refreshToken, accessToken} = await userService.signinUserWithEmailAndPassword({email, password})
     setAccessTokenCookie(ctx,accessToken)
     setRefreshTokenCookie(ctx,refreshToken)
@@ -45,16 +52,21 @@ export const authRouter = router({
   .output(createUserWithEmailAndPasswordOutputSchema)
   .mutation(async ({input, ctx})=>{
     const {fullName, email, password} = input
+    await assertRateLimit({
+      key: `auth:signup:${ctx.requestIp ?? "unknown"}`,
+      limit: 5,
+      windowMs: 60 * 60 * 1000,
+      message: "Too many account creation attempts. Please wait before creating another account.",
+    });
 
-    const {id, refreshToken, accessToken} = await userService.createUserWithEmailAndPassword({
+    const {id, verificationToken, emailVerificationRequired} = await userService.createUserWithEmailAndPassword({
       fullName,email,password
     })
-    //sending cookies
-    setAccessTokenCookie(ctx,accessToken)
-    setRefreshTokenCookie(ctx,refreshToken)
 
     return{
       id,
+      verificationToken,
+      emailVerificationRequired,
     }
   }),
 
@@ -68,6 +80,12 @@ export const authRouter = router({
   })
   .output(guestLoginOutputModel)
   .mutation(async ({ctx})=>{
+    await assertRateLimit({
+      key: `auth:guest:${ctx.requestIp ?? "unknown"}`,
+      limit: 20,
+      windowMs: 60 * 60 * 1000,
+      message: "Too many guest login attempts. Please wait and try again.",
+    });
     const {id, refreshToken, accessToken} = await userService.signinGuestUser()
     setAccessTokenCookie(ctx,accessToken)
     setRefreshTokenCookie(ctx,refreshToken)
@@ -75,6 +93,74 @@ export const authRouter = router({
     return {
       id,
     }
+  }),
+
+  verifyEmail: publicProcedure
+  .meta({
+    openapi:{
+      method:"POST",
+      path:getPath("/verify-email"),
+      tags:TAGS
+    }
+  })
+  .input(verifyEmailInputModel)
+  .output(verifyEmailOutputModel)
+  .mutation(async ({input, ctx})=>{
+    await assertRateLimit({
+      key: `auth:verify-email:${ctx.requestIp ?? "unknown"}`,
+      limit: 10,
+      windowMs: 15 * 60 * 1000,
+      message: "Too many verification attempts. Please wait before trying again.",
+    });
+    const {id, refreshToken, accessToken} = await userService.verifyEmail(input)
+    setAccessTokenCookie(ctx,accessToken)
+    setRefreshTokenCookie(ctx,refreshToken)
+
+    return {
+      id,
+    }
+  }),
+
+  requestPasswordReset: publicProcedure
+  .meta({
+    openapi:{
+      method:"POST",
+      path:getPath("/request-password-reset"),
+      tags:TAGS
+    }
+  })
+  .input(requestPasswordResetInputModel)
+  .output(requestPasswordResetOutputModel)
+  .mutation(async ({input, ctx})=>{
+    await assertRateLimit({
+      key: `auth:password-reset-request:${ctx.requestIp ?? "unknown"}:${input.email}`,
+      limit: 3,
+      windowMs: 15 * 60 * 1000,
+      message: "Too many password reset requests. Please wait before trying again.",
+    });
+
+    return await userService.requestPasswordReset(input)
+  }),
+
+  resetPassword: publicProcedure
+  .meta({
+    openapi:{
+      method:"POST",
+      path:getPath("/reset-password"),
+      tags:TAGS
+    }
+  })
+  .input(resetPasswordInputModel)
+  .output(resetPasswordOutputModel)
+  .mutation(async ({input, ctx})=>{
+    await assertRateLimit({
+      key: `auth:password-reset:${ctx.requestIp ?? "unknown"}`,
+      limit: 5,
+      windowMs: 15 * 60 * 1000,
+      message: "Too many password reset attempts. Please wait before trying again.",
+    });
+
+    return await userService.resetPassword(input)
   }),
 
   //token_varification and reseting
@@ -115,13 +201,14 @@ export const authRouter = router({
   .input(getLoggedInUserInfoInputModel)
   .output(getLoggedInUserInfoOutputModel)
   .query(async ({ctx})=>{
-    const {id,email, fullName, profileImageUrl} = ctx.user
+    const {id,email, fullName, profileImageUrl, emailVerified} = ctx.user
 
     return{
       id,
       email,
       fullName,
-      profileImageUrl
+      profileImageUrl,
+      emailVerified
     }
 
   }),

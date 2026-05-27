@@ -35,6 +35,10 @@ JWT_SERECT=replace-with-a-strong-secret
 BASE_URL=http://localhost:8000
 PORT=8000
 NODE_ENV=dev
+
+# Optional production-grade shared rate limiter.
+UPSTASH_REDIS_REST_URL=https://...
+UPSTASH_REDIS_REST_TOKEN=...
 ```
 
 3. Start PostgreSQL if using Docker.
@@ -74,7 +78,7 @@ Default local URLs:
 - User profile page
 - Guest judge login with seeded demo form data
 - Mobile navigation drawer
-- Server-side rate limiting for form creation and response submission
+- Shared-store-ready rate limiting for auth, form creation, and response submission
 
 ## Guest Demo
 
@@ -92,11 +96,14 @@ When adding a new route, include `meta.openapi` on the tRPC procedure so it appe
 
 ## Security And Abuse Controls
 
-- Passwords are salted and hashed before storage.
+- User passwords are salted with Node's memory-hard `scrypt` password hashing before storage.
+- Legacy password hashes are upgraded to `scrypt` after a successful login.
+- New accounts must pass email verification before they can sign in.
+- Password reset requests use one-time hashed tokens with short expiration windows.
 - Form passwords are salted and hashed separately from user passwords.
 - Protected forms require the form password before fields or submissions are available.
-- Form creation is rate-limited per authenticated user.
-- Response submission is rate-limited per form and client IP.
+- Rate limiting uses Upstash Redis when `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are configured, with local in-memory fallback for development.
+- Auth attempts, form creation, and response submission are rate-limited by user, email, form, and client IP where appropriate.
 - Soft-deleted forms are excluded from user lists and public access.
 
 ## Developer Practices

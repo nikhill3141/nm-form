@@ -1,4 +1,4 @@
-import { db, eq } from "@repo/database";
+import { and, db, eq, gt } from "@repo/database";
 import {
   formFieldsTable,
   formResponsesTable,
@@ -13,14 +13,25 @@ import {
   GenerateUserTokenPayloadType,
   getUserByEmailInput,
   GetUserByEmailInputType,
+  requestPasswordResetInput,
+  RequestPasswordResetInputType,
+  resetPasswordInput,
+  ResetPasswordInputType,
   signInUserWithEmailAndPasswordInput,
   SignInUserWIthEmailAndPasswordInputType,
+  verifyEmailInput,
+  VerifyEmailInputType,
 } from "./model";
-import {randomBytes } from "crypto";
 import * as JWT from "jsonwebtoken";
 import { env } from "../env";
-import { generateHash } from "../utils/generateHash";
 import { createUniqueFormSlug } from "../utils/slug";
+import {
+  createSecureToken,
+  hashPassword,
+  hashToken,
+  isLegacyPasswordHash,
+  verifyPassword,
+} from "../utils/password";
 
 
 class UserService {
@@ -58,7 +69,8 @@ class UserService {
         id:usersTable.id,
         email:usersTable.email,
         fullName:usersTable.fullName,
-        profileImageUrl:usersTable.profileImageUrl
+        profileImageUrl:usersTable.profileImageUrl,
+        emailVerified: usersTable.emailVerified,
       }
     ).from(usersTable).where(eq(usersTable.id,id))
 
@@ -98,9 +110,10 @@ class UserService {
     if (existingUser) {
       throw new Error(`User with this email ${email} already exists `);
     }
-    //hash the password
-    const salt = randomBytes(16).toString("hex");
-    const hash = generateHash(salt,password)
+    const hashedPassword = await hashPassword(password);
+    const verificationToken = createSecureToken();
+    const verificationTokenHash = hashToken(verificationToken);
+    const verificationExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24);
 
     //insert user in db
     const [user] = await db
@@ -108,24 +121,22 @@ class UserService {
       .values({
         fullName,
         email,
-        password: hash,
-        salt
+        password: hashedPassword,
+        salt: null,
+        emailVerified: false,
+        emailVerificationTokenHash: verificationTokenHash,
+        emailVerificationExpiresAt: verificationExpiresAt,
       })
       .returning();
 
     if (!user) {
       throw new Error("Failed to create user");
     }
-    const userID = user.id;
-    const { accessToken} = await this.generateAccessToken({ id: userID });
-    const { refreshToken} = await this.generateRefreshToken({ id: userID });
-
-    await db
-      .update(usersTable)
-      .set({ refreshToken })
-      .where(eq(usersTable.id, userID));
-
-    return {accessToken, refreshToken, id: userID };
+    return {
+      id: user.id,
+      verificationToken,
+      emailVerificationRequired: true,
+    };
   }
 
 
@@ -139,18 +150,32 @@ class UserService {
     if(!existingUser){
       throw new Error(`User with ${email} does not exist`)
     }
-    if(!existingUser.password|| !existingUser.salt) throw new Error("Invalid auth method")
+    if(!existingUser.password) throw new Error("Invalid auth method")
     
-    const checkPassword = generateHash(existingUser.salt,password)
-    if(checkPassword !== existingUser.password){
+    const isPasswordValid = await verifyPassword({
+      password,
+      storedHash: existingUser.password,
+      legacySalt: existingUser.salt,
+    });
+
+    if(!isPasswordValid){
       throw new Error("Invalid email or password")
     }
+
+    if (!existingUser.emailVerified) {
+      throw new Error("Please verify your email before signing in.");
+    }
+
+    const passwordUpdate = isLegacyPasswordHash(existingUser.password)
+      ? { password: await hashPassword(password), salt: null }
+      : {};
+
     const { accessToken} = await this.generateAccessToken({ id: existingUser.id });
     const { refreshToken} = await this.generateRefreshToken({ id: existingUser.id });
 
     await db
       .update(usersTable)
-      .set({ refreshToken })
+      .set({ refreshToken, ...passwordUpdate })
       .where(eq(usersTable.id, existingUser.id));
 
     return {
@@ -158,6 +183,103 @@ class UserService {
       accessToken,
       refreshToken
     }
+  }
+
+  public async verifyEmail(payload: VerifyEmailInputType) {
+    const { token } = await verifyEmailInput.parseAsync(payload);
+    const tokenHash = hashToken(token);
+
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(
+        and(
+          eq(usersTable.emailVerificationTokenHash, tokenHash),
+          gt(usersTable.emailVerificationExpiresAt, new Date())
+        )
+      )
+      .limit(1);
+
+    if (!user) {
+      throw new Error("Email verification link is invalid or expired.");
+    }
+
+    const { accessToken } = await this.generateAccessToken({ id: user.id });
+    const { refreshToken } = await this.generateRefreshToken({ id: user.id });
+
+    await db
+      .update(usersTable)
+      .set({
+        emailVerified: true,
+        emailVerificationTokenHash: null,
+        emailVerificationExpiresAt: null,
+        refreshToken,
+      })
+      .where(eq(usersTable.id, user.id));
+
+    return {
+      id: user.id,
+      accessToken,
+      refreshToken,
+    };
+  }
+
+  public async requestPasswordReset(payload: RequestPasswordResetInputType) {
+    const { email } = await requestPasswordResetInput.parseAsync(payload);
+    const user = await this.getUserByEmail({ email });
+
+    if (!user) {
+      return { success: true, resetToken: undefined };
+    }
+
+    const resetToken = createSecureToken();
+    const resetTokenHash = hashToken(resetToken);
+
+    await db
+      .update(usersTable)
+      .set({
+        passwordResetTokenHash: resetTokenHash,
+        passwordResetExpiresAt: new Date(Date.now() + 1000 * 60 * 30),
+      })
+      .where(eq(usersTable.id, user.id));
+
+    return { success: true, resetToken };
+  }
+
+  public async resetPassword(payload: ResetPasswordInputType) {
+    const { token, password } = await resetPasswordInput.parseAsync(payload);
+    const tokenHash = hashToken(token);
+
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(
+        and(
+          eq(usersTable.passwordResetTokenHash, tokenHash),
+          gt(usersTable.passwordResetExpiresAt, new Date())
+        )
+      )
+      .limit(1);
+
+    if (!user) {
+      throw new Error("Password reset link is invalid or expired.");
+    }
+
+    const hashedPassword = await hashPassword(password);
+
+    await db
+      .update(usersTable)
+      .set({
+        password: hashedPassword,
+        salt: null,
+        refreshToken: null,
+        passwordResetTokenHash: null,
+        passwordResetExpiresAt: null,
+        emailVerified: true,
+      })
+      .where(eq(usersTable.id, user.id));
+
+    return { success: true };
   }
 
   private async ensureGuestDemoData(userId: string) {

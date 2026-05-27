@@ -14,12 +14,15 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [verificationToken, setVerificationToken] = useState("");
+  const [resetMode, setResetMode] = useState(false);
+  const [resetToken, setResetToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
 
   const signup = trpc.auth.createUserWithEmailAndPassword.useMutation({
-    onSuccess: async () => {
-      setMessage("Workspace created. Opening your dashboard...");
-      await utils.auth.getLogedInUser.invalidate();
-      window.location.href = "/dashboard";
+    onSuccess: (data) => {
+      setVerificationToken(data.verificationToken ?? "");
+      setMessage("Account created. Verify your email to unlock the workspace.");
     },
     onError: (error) => setMessage(error.message),
   });
@@ -42,7 +45,40 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     onError: (error) => setMessage(error.message),
   });
 
-  const isPending = signup.isPending || signin.isPending || guestLogin.isPending;
+  const verifyEmail = trpc.auth.verifyEmail.useMutation({
+    onSuccess: async () => {
+      setMessage("Email verified. Opening your dashboard...");
+      await utils.auth.getLogedInUser.invalidate();
+      window.location.href = "/dashboard";
+    },
+    onError: (error) => setMessage(error.message),
+  });
+
+  const requestPasswordReset = trpc.auth.requestPasswordReset.useMutation({
+    onSuccess: (data) => {
+      setResetToken(data.resetToken ?? "");
+      setMessage("Password reset link generated. Set your new password below.");
+    },
+    onError: (error) => setMessage(error.message),
+  });
+
+  const resetPassword = trpc.auth.resetPassword.useMutation({
+    onSuccess: () => {
+      setResetMode(false);
+      setResetToken("");
+      setNewPassword("");
+      setMessage("Password updated. Sign in with your new password.");
+    },
+    onError: (error) => setMessage(error.message),
+  });
+
+  const isPending =
+    signup.isPending ||
+    signin.isPending ||
+    guestLogin.isPending ||
+    verifyEmail.isPending ||
+    requestPasswordReset.isPending ||
+    resetPassword.isPending;
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#06120d] px-6 py-24 text-white">
@@ -59,6 +95,45 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         <p className="mt-3 text-sm leading-6 text-emerald-50/66">
           {isSignup ? "Start designing immersive forms with cinematic themes." : "Open your dashboard and continue building."}
         </p>
+        {resetMode ? (
+          <form
+            className="mt-8 space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setMessage("");
+              if (!resetToken) {
+                requestPasswordReset.mutate({ email });
+                return;
+              }
+              resetPassword.mutate({ token: resetToken, password: newPassword });
+            }}
+          >
+            <div>
+              <label className="mb-2 block text-sm font-medium text-emerald-50">Email</label>
+              <input className="nm-input" onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required type="email" value={email} />
+            </div>
+            {resetToken && (
+              <>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-emerald-50">Reset token</label>
+                  <input className="nm-input" onChange={(event) => setResetToken(event.target.value)} required value={resetToken} />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-emerald-50">New password</label>
+                  <input className="nm-input" onChange={(event) => setNewPassword(event.target.value)} placeholder="Enter a stronger password" required type="password" value={newPassword} />
+                </div>
+              </>
+            )}
+            <Button className="w-full bg-emerald-300 text-emerald-950 hover:bg-emerald-200" disabled={isPending} type="submit">
+              {isPending && <Loader2 className="size-4 animate-spin" />}
+              {resetToken ? "Update password" : "Generate reset link"}
+              <ArrowRight className="size-4" />
+            </Button>
+            <Button className="w-full border-white/12 bg-white/[0.07] text-emerald-50 hover:bg-white/[0.11]" onClick={() => setResetMode(false)} type="button" variant="outline">
+              Back to sign in
+            </Button>
+          </form>
+        ) : (
         <form
           className="mt-8 space-y-4"
           onSubmit={(event) => {
@@ -90,21 +165,53 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             {isSignup ? "Create account" : "Sign in"}
             <ArrowRight className="size-4" />
           </Button>
+          {verificationToken && (
+            <Button
+              className="w-full border-emerald-300/30 bg-emerald-300/12 text-emerald-50 hover:bg-emerald-300/18"
+              disabled={isPending}
+              onClick={() => {
+                setMessage("");
+                verifyEmail.mutate({ token: verificationToken });
+              }}
+              type="button"
+              variant="outline"
+            >
+              {verifyEmail.isPending && <Loader2 className="size-4 animate-spin" />}
+              Verify email and continue
+            </Button>
+          )}
         </form>
+        )}
         {!isSignup && (
-          <Button
-            className="mt-3 w-full border-white/12 bg-white/[0.07] text-emerald-50 hover:bg-white/[0.11]"
-            disabled={isPending}
-            onClick={() => {
-              setMessage("");
-              guestLogin.mutate();
-            }}
-            type="button"
-            variant="outline"
-          >
-            {guestLogin.isPending ? <Loader2 className="size-4 animate-spin" /> : <Presentation className="size-4" />}
-            Continue as guest
-          </Button>
+          <>
+            {!resetMode && (
+              <Button
+                className="mt-3 w-full border-white/12 bg-white/[0.07] text-emerald-50 hover:bg-white/[0.11]"
+                disabled={isPending}
+                onClick={() => {
+                  setMessage("");
+                  guestLogin.mutate();
+                }}
+                type="button"
+                variant="outline"
+              >
+                {guestLogin.isPending ? <Loader2 className="size-4 animate-spin" /> : <Presentation className="size-4" />}
+                Continue as guest
+              </Button>
+            )}
+            {!resetMode && (
+              <button
+                className="mt-4 w-full text-center text-sm font-medium text-emerald-200 hover:text-emerald-100"
+                onClick={() => {
+                  setMessage("");
+                  setResetMode(true);
+                }}
+                type="button"
+              >
+                Forgot password?
+              </button>
+            )}
+          </>
         )}
         {message && (
           <p className="mt-4 rounded-lg border border-white/10 bg-white/[0.06] p-3 text-sm text-emerald-50/72">{message}</p>

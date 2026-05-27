@@ -33,7 +33,7 @@ export const formRouter = router({
     .input(createFormInputModel)
     .output(createFormOutputModel)
     .mutation(async ({ input, ctx }) => {
-      assertRateLimit({
+      await assertRateLimit({
         key: `form:create:${ctx.user.id}`,
         limit: 12,
         windowMs: 60 * 60 * 1000,
