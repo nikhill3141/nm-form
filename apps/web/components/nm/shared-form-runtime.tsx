@@ -20,6 +20,22 @@ type RuntimeField = BuilderDraftField & {
   persistedId?: string;
 };
 
+function parseVisibilityRule(value: unknown) {
+  if (!value || typeof value !== "object") return undefined;
+  const showWhen = (value as RuntimeField["validationRules"])?.showWhen;
+  if (!showWhen?.fieldId || !showWhen.equals) return undefined;
+  return { showWhen };
+}
+
+function fieldIsVisible(field: RuntimeField, answers: Record<string, string>) {
+  const showWhen = field.validationRules?.showWhen;
+  if (!showWhen) return true;
+
+  const controllingValue = answers[showWhen.fieldId] ?? "";
+  const selectedValues = controllingValue.split(",").map((item) => item.trim()).filter(Boolean);
+  return controllingValue === showWhen.equals || selectedValues.includes(showWhen.equals);
+}
+
 function normalizeOptions(options: unknown, type: FieldType) {
   if (Array.isArray(options) && options.every((option) => typeof option === "string")) {
     return options;
@@ -116,16 +132,35 @@ export function SharedFormRuntime() {
           type,
           required: field.required,
           options: normalizeOptions(field.options, type),
+          validationRules: parseVisibilityRule(field.validationRules),
         };
       });
     }
 
     return demoFields;
   }, [draft?.fields, fieldsQuery.data, isDraftPreview]);
+  const visibleFields = useMemo(
+    () => fields.filter((field) => fieldIsVisible(field, answers)),
+    [answers, fields],
+  );
 
   const progress = useMemo(() => {
-    const answered = fields.filter((field) => answers[field.id]).length;
-    return Math.max(18, Math.round((answered / Math.max(fields.length, 1)) * 100));
+    const answered = visibleFields.filter((field) => answers[field.id]).length;
+    return Math.max(18, Math.round((answered / Math.max(visibleFields.length, 1)) * 100));
+  }, [answers, visibleFields]);
+
+  useEffect(() => {
+    setAnswers((current) => {
+      const visibleFieldIds = new Set(fields.filter((field) => fieldIsVisible(field, current)).map((field) => field.id));
+      const hiddenAnsweredFieldIds = Object.keys(current).filter((fieldId) => !visibleFieldIds.has(fieldId));
+      if (!hiddenAnsweredFieldIds.length) return current;
+
+      const nextAnswers = { ...current };
+      hiddenAnsweredFieldIds.forEach((fieldId) => {
+        delete nextAnswers[fieldId];
+      });
+      return nextAnswers;
+    });
   }, [answers, fields]);
 
   function toggleMultiValue(fieldId: string, option: string) {
@@ -224,7 +259,7 @@ export function SharedFormRuntime() {
   function submitForm() {
     setMessage("");
 
-    const missingField = fields.find((field) => field.required && !answers[field.id]);
+    const missingField = visibleFields.find((field) => field.required && !answers[field.id]);
     if (missingField) {
       const nextMessage = `Please answer: ${missingField.label}`;
       toast.warning("A required leaf is still empty.", {
@@ -254,7 +289,10 @@ export function SharedFormRuntime() {
       formId,
       linkSlug: routeSlug,
       formPassword: formPassword || undefined,
-      answers: fieldsQuery.data.map((field) => {
+      answers: fieldsQuery.data.filter((field) => {
+        const runtimeField = visibleFields.find((item) => item.id === field.id);
+        return Boolean(runtimeField);
+      }).map((field) => {
         const answer = answers[field.id] || "Skipped";
         const value = field.type === "rating" && ratingFeedback[field.id]
           ? `${answer} star${answer === "1" ? "" : "s"} - ${ratingFeedback[field.id]}`
@@ -290,7 +328,7 @@ export function SharedFormRuntime() {
               </Button>
             )}
           </div>
-          <span className="rounded-full border border-white/12 bg-white/10 px-4 py-2 text-sm">{fields.length} questions</span>
+          <span className="rounded-full border border-white/12 bg-white/10 px-4 py-2 text-sm">{visibleFields.length} questions</span>
         </div>
         {requiresPassword && !hasPasswordAccess ? (
           <section className="grid flex-1 place-items-center py-16">
@@ -364,7 +402,7 @@ export function SharedFormRuntime() {
           </h1>
           {(draft?.description || form?.description) && <p className="mt-4 max-w-2xl text-base leading-7 opacity-76">{draft?.description ?? form?.description}</p>}
           <div className="mt-10 space-y-5">
-            {fields.map((field, index) => (
+            {visibleFields.map((field, index) => (
               <div className={`rounded-xl border p-5 shadow-2xl shadow-black/15 backdrop-blur-xl ${theme.panelClass}`} key={field.id}>
                 <label className="mb-4 block text-lg font-medium">
                   {index + 1}. {field.label}

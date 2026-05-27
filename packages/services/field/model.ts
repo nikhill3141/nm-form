@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   fieldLabelSchema,
+  fieldVisibilityRuleSchema,
   formPasswordSchema,
   optionalFieldTextSchema,
   uuidSchema,
@@ -38,7 +39,7 @@ export const createFieldInputModel = z.object({
   placeholder: optionalFieldTextSchema.describe("field placeholder"),
   required: z.boolean().default(false).describe("whether field is required"),
   order: z.number().int().nonnegative().describe("field order in the form"),
-  validationRules: z.record(z.string(), z.unknown()).optional(),
+  validationRules: fieldVisibilityRuleSchema.optional(),
   options: z.array(z.string()).optional().describe("options for select fields"),
 });
 export type CreateFieldInputModelType = z.infer<typeof createFieldInputModel>;
@@ -51,7 +52,7 @@ export const updateFieldInputModel = z.object({
   placeholder: optionalFieldTextSchema,
   required: z.boolean().optional(),
   order: z.number().int().nonnegative().optional(),
-  validationRules: z.record(z.string(), z.unknown()).optional(),
+  validationRules: fieldVisibilityRuleSchema.optional(),
   options: z.array(z.string()).optional(),
 });
 export type UpdateFieldInputModelType = z.infer<typeof updateFieldInputModel>;

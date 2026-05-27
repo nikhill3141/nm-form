@@ -22,6 +22,15 @@ export const optionalFieldTextSchema = z.string().max(255).optional();
 export const authTokenSchema = z.string().min(20);
 export const formPasswordSchema = z.string().min(4).max(80);
 
+export const fieldVisibilityRuleSchema = z.object({
+  showWhen: z
+    .object({
+      fieldId: uuidSchema,
+      equals: nonEmptyTrimmedStringSchema.max(255),
+    })
+    .optional(),
+});
+
 export const paginationSchema = z.object({
   page: z.number().int().min(1).default(1),
   pageSize: z.number().int().min(1).max(50).default(20),

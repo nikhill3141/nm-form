@@ -3,6 +3,13 @@ import type { FormThemeValue } from "./themes";
 
 export const builderDraftStorageKey = "nm-form-builder-draft";
 
+export interface FieldVisibilityRule {
+  showWhen?: {
+    fieldId: string;
+    equals: string;
+  };
+}
+
 export interface BuilderDraftField {
   id: string;
   persistedId?: string;
@@ -10,6 +17,7 @@ export interface BuilderDraftField {
   type: FieldType;
   required: boolean;
   options?: string[];
+  validationRules?: FieldVisibilityRule;
 }
 
 export interface BuilderDraft {

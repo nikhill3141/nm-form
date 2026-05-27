@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { trpc } from "~/trpc/client";
-import { clearBuilderDraft, loadBuilderDraft, saveBuilderDraft, type BuilderDraftField } from "./builder-draft";
+import { clearBuilderDraft, loadBuilderDraft, saveBuilderDraft, type BuilderDraftField, type FieldVisibilityRule } from "./builder-draft";
 import { templates } from "./data";
 import {
   fieldBlocks,
@@ -42,6 +42,13 @@ function defaultExpiryValue() {
 function isoToDatetimeLocalValue(value?: string | null) {
   if (!value) return defaultExpiryValue();
   return toDatetimeLocalValue(new Date(value));
+}
+
+function parseVisibilityRule(value: unknown): FieldVisibilityRule | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const showWhen = (value as FieldVisibilityRule).showWhen;
+  if (!showWhen?.fieldId || !showWhen.equals) return undefined;
+  return { showWhen };
 }
 
 //this is the main component of building the FORM 
@@ -158,6 +165,7 @@ export function FunctionalBuilder() {
         type: question.type as FieldType,
         required: question.required,
         options: question.options ?? getDefaultOptionsForFieldType(question.type as FieldType),
+        validationRules: undefined,
       })),
     );
     setLoadedTemplateSlug(selectedTemplate.slug);
@@ -187,6 +195,7 @@ export function FunctionalBuilder() {
         options: Array.isArray(field.options)
           ? field.options.filter((option): option is string => typeof option === "string")
           : getDefaultOptionsForFieldType(field.type as FieldType),
+        validationRules: parseVisibilityRule(field.validationRules),
       })),
     );
     setLoadedRemoteFormId(editFormId);
@@ -228,6 +237,26 @@ export function FunctionalBuilder() {
 
   function getFieldOptions(field: LocalField) {
     return field.options ?? getDefaultOptionsForFieldType(field.type);
+  }
+
+  function getConditionalSourceFields(fieldId: string) {
+    const fieldIndex = fields.findIndex((field) => field.id === fieldId);
+    if (fieldIndex <= 0) return [];
+    return fields.slice(0, fieldIndex).filter((field) => isOptionField(field.type));
+  }
+
+  function translateVisibilityRule(
+    rule: FieldVisibilityRule | undefined,
+    idByLocalId: Map<string, string>
+  ) {
+    if (!rule?.showWhen) return undefined;
+    const fieldId = idByLocalId.get(rule.showWhen.fieldId) ?? rule.showWhen.fieldId;
+    return {
+      showWhen: {
+        fieldId,
+        equals: rule.showWhen.equals,
+      },
+    };
   }
 
   async function syncForm({ publish = false }: { publish?: boolean } = {}) {
@@ -279,9 +308,13 @@ export function FunctionalBuilder() {
       }
 
       const nextFields = [...fields];
+      const idByLocalId = new Map<string, string>();
       const persistedFieldIds = nextFields
         .map((field) => field.persistedId)
         .filter((id): id is string => Boolean(id));
+      nextFields.forEach((field) => {
+        if (field.persistedId) idByLocalId.set(field.id, field.persistedId);
+      });
 
       for (const [index, id] of persistedFieldIds.entries()) {
         await updateFieldMutation.mutateAsync({
@@ -293,6 +326,7 @@ export function FunctionalBuilder() {
       for (const [order, field] of nextFields.entries()) {
         const placeholder = fieldBlocks.find((block) => block.type === field.type)?.placeholder || "Type your answer...";
         const options = isOptionField(field.type) ? getFieldOptions(field) : undefined;
+        const validationRules = translateVisibilityRule(field.validationRules, idByLocalId);
 
         if (field.persistedId) {
           await updateFieldMutation.mutateAsync({
@@ -303,8 +337,9 @@ export function FunctionalBuilder() {
             order,
             placeholder,
             options,
+            validationRules,
           });
-          nextFields[order] = { ...field, options };
+          nextFields[order] = { ...field, options, validationRules };
           continue;
         }
 
@@ -316,8 +351,20 @@ export function FunctionalBuilder() {
           order,
           placeholder,
           options,
+          validationRules,
         });
-        nextFields[order] = { ...field, persistedId: created.id, options };
+        idByLocalId.set(field.id, created.id);
+        nextFields[order] = { ...field, persistedId: created.id, options, validationRules };
+      }
+
+      for (const [order, field] of nextFields.entries()) {
+        if (!field.persistedId) continue;
+        const validationRules = translateVisibilityRule(field.validationRules, idByLocalId);
+        nextFields[order] = { ...field, validationRules };
+        await updateFieldMutation.mutateAsync({
+          id: field.persistedId,
+          validationRules,
+        });
       }
 
       setFields(nextFields);
@@ -391,13 +438,14 @@ export function FunctionalBuilder() {
         type,
         required: newFieldRequired,
         options: getDefaultOptionsForFieldType(type),
+        validationRules: undefined,
       },
     ]);
     setNewFieldLabel("");
     setNewFieldRequired(false);
   }
 
-  function updateField(id: string, patch: Partial<Pick<LocalField, "label" | "required" | "options">>) {
+  function updateField(id: string, patch: Partial<Pick<LocalField, "label" | "required" | "options" | "validationRules">>) {
     setFields((current) => current.map((field) => (field.id === id ? { ...field, ...patch } : field)));
   }
 
@@ -639,6 +687,73 @@ export function FunctionalBuilder() {
                               value={option}
                             />
                           ))}
+                        </div>
+                      )}
+                      {getConditionalSourceFields(field.id).length > 0 && (
+                        <div className="mb-3 rounded-lg border border-emerald-900/10 bg-white/64 p-3 dark:border-white/10 dark:bg-black/20">
+                          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700/70 dark:text-emerald-200/70">
+                            Conditional logic
+                          </p>
+                          <div className="grid gap-2 md:grid-cols-2">
+                            <Select
+                              onValueChange={(value) => {
+                                if (value === "__always") {
+                                  updateField(field.id, { validationRules: undefined });
+                                  return;
+                                }
+
+                                const sourceField = fields.find((item) => item.id === value);
+                                const firstOption = sourceField ? getFieldOptions(sourceField)?.[0] : undefined;
+                                updateField(field.id, {
+                                  validationRules: firstOption
+                                    ? { showWhen: { fieldId: value, equals: firstOption } }
+                                    : undefined,
+                                });
+                              }}
+                              value={field.validationRules?.showWhen?.fieldId ?? "__always"}
+                            >
+                              <SelectTrigger className="nm-input h-11 w-full bg-white/78 px-3 text-left dark:bg-black/28">
+                                <SelectValue placeholder="Always show" />
+                              </SelectTrigger>
+                              <SelectContent className="border-emerald-900/10 bg-white text-emerald-950 dark:border-white/10 dark:bg-[#07140d] dark:text-emerald-50">
+                                <SelectItem value="__always">Always show</SelectItem>
+                                {getConditionalSourceFields(field.id).map((sourceField) => (
+                                  <SelectItem key={sourceField.id} value={sourceField.id}>
+                                    Show after: {sourceField.label || "Untitled question"}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {field.validationRules?.showWhen && (
+                              <Select
+                                onValueChange={(value) =>
+                                  updateField(field.id, {
+                                    validationRules: {
+                                      showWhen: {
+                                        fieldId: field.validationRules?.showWhen?.fieldId ?? "",
+                                        equals: value,
+                                      },
+                                    },
+                                  })
+                                }
+                                value={field.validationRules.showWhen.equals}
+                              >
+                                <SelectTrigger className="nm-input h-11 w-full bg-white/78 px-3 text-left dark:bg-black/28">
+                                  <SelectValue placeholder="Choose answer" />
+                                </SelectTrigger>
+                                <SelectContent className="border-emerald-900/10 bg-white text-emerald-950 dark:border-white/10 dark:bg-[#07140d] dark:text-emerald-50">
+                                  {(getFieldOptions(fields.find((item) => item.id === field.validationRules?.showWhen?.fieldId) ?? field) ?? []).map((option) => (
+                                    <SelectItem key={option} value={option}>
+                                      Answer is: {option}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
+                          <p className="mt-2 text-xs leading-5 text-emerald-900/56 dark:text-emerald-50/52">
+                            Show this question only when a previous choice matches the selected answer.
+                          </p>
                         </div>
                       )}
                       {renderFieldPreview(field)}

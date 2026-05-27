@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { answerInputModel } from "../answer/model";
+import { fieldVisibilityRuleSchema } from "../shared/schema";
 
 type ResponseFieldForValidation = {
   id: string;
@@ -7,6 +8,7 @@ type ResponseFieldForValidation = {
   type: string;
   required: boolean;
   options: unknown;
+  validationRules: unknown;
 };
 
 const skippedValue = "Skipped";
@@ -120,14 +122,41 @@ const fieldValueSchema = (field: ResponseFieldForValidation) => {
   });
 };
 
+function fieldIsVisible(
+  field: ResponseFieldForValidation,
+  answerValuesByFieldId: Map<string, string>
+) {
+  const visibilityRule = fieldVisibilityRuleSchema.safeParse(
+    field.validationRules ?? {}
+  );
+  const showWhen = visibilityRule.success ? visibilityRule.data.showWhen : undefined;
+
+  if (!showWhen) return true;
+
+  const controllingValue = answerValuesByFieldId.get(showWhen.fieldId) ?? "";
+  const selectedValues = controllingValue
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return selectedValues.includes(showWhen.equals) || controllingValue === showWhen.equals;
+}
+
 export function buildResponseAnswersSchema(fields: ResponseFieldForValidation[]) {
   const fieldMap = new Map(fields.map((field) => [field.id, field]));
-  const requiredFieldIds = new Set(
-    fields.filter((field) => field.required).map((field) => field.id)
-  );
 
   return z.array(answerInputModel).min(1).superRefine((answers, ctx) => {
     const answeredFieldIds = new Set<string>();
+    const answerValuesByFieldId = new Map(
+      answers.map((answer) => [answer.fieldId, answer.value])
+    );
+    const visibleFields = fields.filter((field) =>
+      fieldIsVisible(field, answerValuesByFieldId)
+    );
+    const visibleFieldIds = new Set(visibleFields.map((field) => field.id));
+    const requiredFieldIds = new Set(
+      visibleFields.filter((field) => field.required).map((field) => field.id)
+    );
 
     answers.forEach((answer, index) => {
       const field = fieldMap.get(answer.fieldId);
@@ -136,6 +165,15 @@ export function buildResponseAnswersSchema(fields: ResponseFieldForValidation[])
         ctx.addIssue({
           code: "custom",
           message: "answer field does not belong to this form",
+          path: [index, "fieldId"],
+        });
+        return;
+      }
+
+      if (!visibleFieldIds.has(answer.fieldId)) {
+        ctx.addIssue({
+          code: "custom",
+          message: `field is hidden by conditional logic: ${field.label}`,
           path: [index, "fieldId"],
         });
         return;
