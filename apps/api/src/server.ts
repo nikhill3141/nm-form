@@ -1,6 +1,6 @@
 import express from "express";
 import { logger } from "@repo/logger";
-import cors from "cors";
+import cors, { type CorsOptions } from "cors";
 
 import * as trpcExpress from "@trpc/server/adapters/express";
 import { generateOpenApiDocument, createOpenApiExpressMiddleware } from "trpc-to-openapi";
@@ -19,24 +19,57 @@ const openApiDocument = generateOpenApiDocument(serverRouter, {
 });
 
 const normalizeOrigin = (origin: string) => origin.trim().replace(/\/$/, "");
-const allowedOrigins = [
+const allowedOrigins = new Set([
   "https://nm-form-web.vercel.app",
   ...(env.FRONTEND_URL?.split(",").map(normalizeOrigin) ?? []),
+]);
+const allowedMethods = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"];
+const allowedHeaders = [
+  "Accept",
+  "Authorization",
+  "Content-Type",
+  "Origin",
+  "TRPC-Accept",
+  "X-Requested-With",
 ];
 
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin) {
-        callback(null, true);
-        return;
-      }
+const isAllowedOrigin = (origin?: string) => {
+  if (!origin) return true;
+  return allowedOrigins.has(normalizeOrigin(origin));
+};
 
-      callback(null, allowedOrigins.includes(normalizeOrigin(origin)));
-    },
-    credentials: true,
-  }),
-);
+const corsOptions: CorsOptions = {
+  origin(origin, callback) {
+    callback(null, isAllowedOrigin(origin));
+  },
+  credentials: true,
+  methods: allowedMethods,
+  allowedHeaders,
+  optionsSuccessStatus: 204,
+};
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  if (typeof origin === "string" && isAllowedOrigin(origin)) {
+    res.header("Access-Control-Allow-Origin", normalizeOrigin(origin));
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Access-Control-Allow-Methods", allowedMethods.join(","));
+    res.header(
+      "Access-Control-Allow-Headers",
+      req.headers["access-control-request-headers"]?.toString() ?? allowedHeaders.join(","),
+    );
+    res.vary("Origin");
+  }
+
+  if (req.method === "OPTIONS") {
+    res.sendStatus(isAllowedOrigin(typeof origin === "string" ? origin : undefined) ? 204 : 403);
+    return;
+  }
+
+  next();
+});
+app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
 
