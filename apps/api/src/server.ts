@@ -4,7 +4,6 @@ import cors, { type CorsOptions } from "cors";
 
 import * as trpcExpress from "@trpc/server/adapters/express";
 import { generateOpenApiDocument, createOpenApiExpressMiddleware } from "trpc-to-openapi";
-import { apiReference } from "@scalar/express-api-reference";
 
 import { serverRouter, createContext } from "@repo/trpc/server";
 
@@ -89,7 +88,12 @@ app.get("/openapi.json", (req, res) => {
 });
 
 logger.debug(`docs: ${env.BASE_URL}/docs`);
-app.use("/docs", apiReference({ url: "/openapi.json" }));
+app.get("/docs", (_req, res) => {
+  return res.json({
+    message: "OpenAPI document is available at /openapi.json",
+    openapi: "/openapi.json",
+  });
+});
 
 app.use(
   "/api",
